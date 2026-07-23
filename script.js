@@ -268,6 +268,8 @@ function initChatbot() {
   const chatBody = document.getElementById('chatbot-body');
   const chatOptions = document.getElementById('chatbot-options');
   const badge = toggleBtn ? toggleBtn.querySelector('.chatbot-badge') : null;
+  const inputForm = document.getElementById('chatbot-input-form');
+  const textInput = document.getElementById('chatbot-text-input');
 
   if (!toggleBtn || !chatWindow || !chatBody || !chatOptions) return;
 
@@ -524,6 +526,109 @@ function initChatbot() {
             showMainMenu();
           });
         }
+      });
+    });
+  }
+
+  // Handle direct text query search
+  function handleUserTextQuery(query) {
+    const text = query.toLowerCase().trim();
+
+    // 1. Chốt đơn / Đăng ký
+    if (text.includes('đăng ký') || text.includes('mua') || text.includes('học phí') || text.includes('bao nhiêu tiền') || text.includes('giá') || text.includes('chốt đơn') || text.includes('ưu đãi') || text.includes('gói 14') || text.includes('gói 30') || text.includes('chi phí') || text.includes('tốn tiền')) {
+      if (text.includes('khác nhau') || text.includes('so sánh') || text.includes('gói nào')) {
+        const answer = faqData.find(item => item.id == 7).a;
+        addMessage('bot', answer, 'buy');
+      } else {
+        const closingText = "Tuyệt vời quá, nghe bạn chia sẻ là mình thấy bạn có ngách rất tiềm năng rồi đó. Thử xem, nếu bạn đã sẵn sàng để sở hữu một kênh thương hiệu cá nhân của riêng mình, hãy chốt luôn gói đồng hành nhé. Hiện tại vẫn đang còn ưu đãi giảm giá 50% trong hôm nay đó. Bấm nút phía dưới để đăng ký giữ chỗ và nhận ưu đãi ngay nha!";
+        addMessage('bot', closingText, 'buy');
+      }
+      return;
+    }
+
+    // 2. Chưa sẵn sàng / khảo sát
+    if (text.includes('khảo sát') || text.includes('chưa sẵn sàng') || text.includes('tư vấn') || text.includes('lộ trình') || text.includes('chưa muốn mua') || text.includes('tìm hiểu thêm')) {
+      const surveyText = "Không sao nè, việc xây kênh là chặng đường dài nên bạn cứ cân nhắc kỹ nha. Để mình hiểu rõ hơn về thế mạnh cũng như khó khăn hiện tại của bạn, thử xem qua form khảo sát ngắn này nhé. Chỉ mất 1 phút thôi, dựa vào đó mình sẽ gợi ý thêm cho bạn một lộ trình phù hợp nhất. Điền thông tin khảo sát ở nút dưới này nha:";
+      addMessage('bot', surveyText, 'survey');
+      return;
+    }
+
+    // 3. Công nghệ / CapCut / Quay dựng
+    if (text.includes('công nghệ') || text.includes('quay dựng') || text.includes('capcut') || text.includes('edit') || text.includes('dựng video') || text.includes('chỉnh sửa') || text.includes('mù công nghệ')) {
+      const answer = faqData.find(item => item.id == 2).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 4. Sợ camera / Ống kính / Lộ mặt
+    if (text.includes('ngại') || text.includes('ống kính') || text.includes('camera') || text.includes('lộ mặt') || text.includes('nói vấp') || text.includes('giọng nói') || text.includes('sợ camera') || text.includes('không muốn xuất hiện')) {
+      const answer = faqData.find(item => item.id == 3).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 5. Thiết bị / Micro / Điện thoại
+    if (text.includes('thiết bị') || text.includes('chuẩn bị') || text.includes('điện thoại') || text.includes('micro') || text.includes('studio') || text.includes('máy ảnh') || text.includes('dụng cụ')) {
+      const answer = faqData.find(item => item.id == 4).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 6. Thời gian / Bận / Linh hoạt
+    if (text.includes('thời gian') || text.includes('bận') || text.includes('giờ học') || text.includes('lịch học') || text.includes('bao lâu') || text.includes('rảnh')) {
+      const answer = faqData.find(item => item.id == 1).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 7. Hoàn tiền / Cam kết
+    if (text.includes('cam kết') || text.includes('hoàn tiền') || text.includes('trả lại tiền') || text.includes('uy tín') || text.includes('chất lượng')) {
+      const answer = faqData.find(item => item.id == 8).a;
+      addMessage('bot', answer, 'buy');
+      return;
+    }
+
+    // 8. Hỗ trợ sau khóa học / Trọn đời
+    if (text.includes('hỗ trợ') || text.includes('sau khóa') || text.includes('học xong') || text.includes('kết thúc') || text.includes('bỏ rơi') || text.includes('trọn đời')) {
+      const answer = faqData.find(item => item.id == 5).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 9. Học bù / Bảo lưu
+    if (text.includes('học bù') || text.includes('bảo lưu') || text.includes('nghỉ học') || text.includes('bận đột xuất')) {
+      const answer = faqData.find(item => item.id == 9).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // 10. Chưa có sản phẩm / Affiliate / Kiếm tiền
+    if (text.includes('chưa có sản phẩm') || text.includes('affiliate') || text.includes('tiếp thị liên kết') || text.includes('kiếm tiền') || text.includes('chưa có gì để bán') || text.includes('bán gì')) {
+      const answer = faqData.find(item => item.id == 10).a;
+      addMessage('bot', answer);
+      return;
+    }
+
+    // Fallback response matching Brand Voice
+    const fallbackText = "Thật ra câu này mình chưa rõ lắm. Đơn giản thôi, bạn thử gõ ngắn gọn các câu hỏi liên quan đến: học phí, bận rộn, sợ camera, công nghệ, thiết bị, hoàn tiền, hoặc affiliate xem sao nha.<br><br>Hoặc không cần phức tạp đâu, bạn thử click chọn trực tiếp mấy câu hỏi nhanh ở menu phía dưới này nè!";
+    addMessage('bot', fallbackText);
+    showMainMenu();
+  }
+
+  // Bind direct input submit event
+  if (inputForm && textInput) {
+    inputForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userText = textInput.value.trim();
+      if (!userText) return;
+
+      // Add user query to chat logs
+      addMessage('user', userText);
+      textInput.value = '';
+
+      // Set bot typing state and resolve query
+      showBotTyping(() => {
+        handleUserTextQuery(userText);
       });
     });
   }
