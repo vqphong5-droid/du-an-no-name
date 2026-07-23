@@ -289,13 +289,6 @@ function initChatbot() {
     });
   }
 
-  // Close chatbot when clicking outside
-  document.addEventListener('click', (e) => {
-    if (chatWindow.classList.contains('active') && !chatbotWrapper.contains(e.target)) {
-      closeChat();
-    }
-  });
-
   function openChat() {
     chatWindow.classList.add('active');
     const openIcon = toggleBtn.querySelector('.chatbot-icon-open');
@@ -407,7 +400,6 @@ function initChatbot() {
         e.preventDefault();
         const targetId = btn.getAttribute('href');
         const targetEl = document.querySelector(targetId);
-        closeChat();
         if (targetEl) {
           const headerOffset = 80;
           const elementPosition = targetEl.getBoundingClientRect().top;
