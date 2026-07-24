@@ -26,7 +26,6 @@ if (process.env.TURSO_DATABASE_URL) {
       return res.rows[0] || null;
     },
     executeTransaction: async (queries) => {
-      // queries is an array of { sql, args }
       const res = await client.batch(queries, "write");
       const lastInsertRes = res[res.length - 1];
       return { lastInsertRowid: Number(lastInsertRes.lastInsertRowid) };
@@ -86,6 +85,84 @@ if (process.env.TURSO_DATABASE_URL) {
   };
 }
 
+// 2. SELF-HEALING DATABASE INITIALIZATION
+let dbInitialized = false;
+async function ensureDbInitialized() {
+  if (dbInitialized) return;
+  
+  try {
+    // Create products table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('physical', 'digital', 'service')),
+        price REAL NOT NULL,
+        description TEXT,
+        remaining_quantity INTEGER,
+        CHECK (type != 'physical' OR remaining_quantity IS NOT NULL)
+      )
+    `);
+    
+    // Create customers table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT UNIQUE NOT NULL,
+        zalo TEXT,
+        registered_at TEXT NOT NULL
+      )
+    `);
+    
+    // Create orders table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'completed', 'cancelled', 'refunded')),
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(customer_id) REFERENCES customers(id),
+        FOREIGN KEY(product_id) REFERENCES products(id)
+      )
+    `);
+    
+    // Auto-import waitlist if customers table is empty
+    const customersCount = await db.get("SELECT COUNT(*) as count FROM customers");
+    if (customersCount && (customersCount.count === 0 || customersCount.count === '0')) {
+      const waitlistPath = path.join(process.cwd(), 'waitlist.json');
+      if (fs.existsSync(waitlistPath)) {
+        try {
+          const fileData = fs.readFileSync(waitlistPath, 'utf-8');
+          const data = JSON.parse(fileData);
+          for (const item of data) {
+            const { name, phone, zalo, registered_at } = item;
+            if (name && phone && registered_at) {
+              try {
+                await db.run(`
+                  INSERT INTO customers (name, phone, zalo, registered_at)
+                  VALUES (?, ?, ?, ?)
+                `, [name, phone, zalo || '', registered_at]);
+              } catch (e) {
+                // Ignore duplicates
+              }
+            }
+          }
+          console.log("Waitlist data auto-imported to database.");
+        } catch (err) {
+          console.error("Auto-import waitlist failed:", err);
+        }
+      }
+    }
+    
+    dbInitialized = true;
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+  }
+}
+
 // Helper to parse JSON request body
 function getJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -104,6 +181,9 @@ function getJsonBody(req) {
 
 // Exported Request Handler for Vercel Serverless Function & Local server
 module.exports = async (req, res) => {
+  // Ensure tables and initial data exist
+  await ensureDbInitialized();
+
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
   const method = req.method;
