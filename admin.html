@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Cô Thiện Xây Kênh</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font);
+      line-height: 1.5;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    /* Tabs navigation */
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      font-family: var(--font);
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--text-main);
+      background: var(--accent);
+    }
+
+    /* Content Area */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .action-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    /* Table styles */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tag {
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .tag-physical { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .tag-digital { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+    .tag-service { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+
+    .tag-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .tag-completed { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .tag-cancelled { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .tag-refunded { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-sm {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+    }
+
+    .modal.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: var(--text-main);
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+      display: block;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 0.6rem 0.8rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    /* Notification */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 500;
+      z-index: 2000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    #toast.success { background-color: var(--success); }
+    #toast.error { background-color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Cô Thiện Xây Kênh — Admin Panel</h1>
+    <a href="/" class="btn btn-secondary">Xem Landing Page</a>
+  </header>
+
+  <div class="container">
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('products')">Sản phẩm</button>
+      <button class="tab-btn" onclick="switchTab('customers')">Khách hàng</button>
+      <button class="tab-btn" onclick="switchTab('orders')">Đơn hàng</button>
+    </div>
+
+    <!-- 1. PRODUCTS TAB -->
+    <div id="tab-products" class="tab-content active">
+      <div class="action-header">
+        <h2>Quản lý sản phẩm</h2>
+        <button class="btn" onclick="openProductModal()">+ Thêm sản phẩm</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên sản phẩm</th>
+              <th>Loại sản phẩm</th>
+              <th>Giá</th>
+              <th>Tồn kho (Vật lý)</th>
+              <th>Mô tả</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="products-table-body">
+            <!-- Dynamic data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. CUSTOMERS TAB -->
+    <div id="tab-customers" class="tab-content">
+      <div class="action-header">
+        <h2>Quản lý khách hàng</h2>
+        <button class="btn" onclick="openCustomerModal()">+ Thêm khách hàng</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên khách hàng</th>
+              <th>Số điện thoại</th>
+              <th>Zalo</th>
+              <th>Ngày đăng ký</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="customers-table-body">
+            <!-- Dynamic data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. ORDERS TAB -->
+    <div id="tab-orders" class="tab-content">
+      <div class="action-header">
+        <h2>Quản lý đơn hàng</h2>
+        <button class="btn" onclick="openOrderModal()">+ Thêm đơn hàng</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Khách hàng</th>
+              <th>Sản phẩm</th>
+              <th>Số tiền</th>
+              <th>Trạng thái</th>
+              <th>Ngày mua</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="orders-table-body">
+            <!-- Dynamic data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- --- MODALS --- -->
+
+  <!-- Product Modal -->
+  <div id="product-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="product-modal-title">Thêm sản phẩm mới</h3>
+        <button class="modal-close" onclick="closeModal('product-modal')">&times;</button>
+      </div>
+      <form id="product-form" onsubmit="saveProduct(event)">
+        <input type="hidden" id="product-id">
+        <div class="form-group">
+          <label for="product-name">Tên sản phẩm *</label>
+          <input type="text" id="product-name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="product-type">Loại sản phẩm *</label>
+          <select id="product-type" class="form-control" onchange="toggleRemainingQty()" required>
+            <option value="physical">Vật lý (physical)</option>
+            <option value="digital">Kỹ thuật số (digital)</option>
+            <option value="service">Dịch vụ (service)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="product-price">Giá (VNĐ) *</label>
+          <input type="number" id="product-price" class="form-control" min="0" step="any" required>
+        </div>
+        <div class="form-group" id="product-qty-group">
+          <label for="product-qty">Số lượng còn lại (Tồn kho) *</label>
+          <input type="number" id="product-qty" class="form-control" min="0">
+        </div>
+        <div class="form-group">
+          <label for="product-desc">Mô tả</label>
+          <textarea id="product-desc" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">Hủy</button>
+          <button type="submit" class="btn">Lưu lại</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Customer Modal -->
+  <div id="customer-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="customer-modal-title">Thêm khách hàng mới</h3>
+        <button class="modal-close" onclick="closeModal('customer-modal')">&times;</button>
+      </div>
+      <form id="customer-form" onsubmit="saveCustomer(event)">
+        <input type="hidden" id="customer-id">
+        <div class="form-group">
+          <label for="customer-name">Tên khách hàng *</label>
+          <input type="text" id="customer-name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="customer-phone">Số điện thoại *</label>
+          <input type="text" id="customer-phone" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="customer-zalo">Tài khoản Zalo</label>
+          <input type="text" id="customer-zalo" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="customer-date">Ngày đăng ký *</label>
+          <input type="text" id="customer-date" class="form-control" placeholder="YYYY-MM-DD HH:MM:SS" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('customer-modal')">Hủy</button>
+          <button type="submit" class="btn">Lưu lại</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Modal -->
+  <div id="order-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="order-modal-title">Thêm đơn hàng mới</h3>
+        <button class="modal-close" onclick="closeModal('order-modal')">&times;</button>
+      </div>
+      <form id="order-form" onsubmit="saveOrder(event)">
+        <input type="hidden" id="order-id">
+        <div class="form-group">
+          <label for="order-customer">Chọn khách hàng *</label>
+          <select id="order-customer" class="form-control" required>
+            <!-- Dynamic customers -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="order-product">Chọn sản phẩm *</label>
+          <select id="order-product" class="form-control" onchange="autoFillOrderAmount()" required>
+            <!-- Dynamic products -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="order-amount">Số tiền thanh toán (VNĐ) *</label>
+          <input type="number" id="order-amount" class="form-control" min="0" step="any" required>
+        </div>
+        <div class="form-group">
+          <label for="order-status">Trạng thái đơn hàng *</label>
+          <select id="order-status" class="form-control" required>
+            <option value="pending">Chờ xử lý (pending)</option>
+            <option value="completed">Đã hoàn tất (completed)</option>
+            <option value="cancelled">Đã hủy (cancelled)</option>
+            <option value="refunded">Đã hoàn tiền (refunded)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="order-date">Ngày mua hàng *</label>
+          <input type="text" id="order-date" class="form-control" placeholder="YYYY-MM-DD HH:MM:SS" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('order-modal')">Hủy</button>
+          <button type="submit" class="btn">Lưu lại</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast message -->
+  <div id="toast"></div>
+
+  <script>
+    // In-memory data cache
+    let products = [];
+    let customers = [];
+    let orders = [];
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+    });
+
+    // Format money (VNĐ)
+    function formatMoney(amount) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    }
+
+    // Get current date string in standard format
+    function getNowString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // Toggle Remaining Qty visibility based on product type
+    function toggleRemainingQty() {
+      const type = document.getElementById('product-type').value;
+      const qtyGroup = document.getElementById('product-qty-group');
+      const qtyInput = document.getElementById('product-qty');
+      
+      if (type === 'physical') {
+        qtyGroup.style.display = 'block';
+        qtyInput.required = true;
+      } else {
+        qtyGroup.style.display = 'none';
+        qtyInput.required = false;
+        qtyInput.value = '';
+      }
+    }
+
+    // Autofill price when selecting product in order form
+    function autoFillOrderAmount() {
+      const prodId = parseInt(document.getElementById('order-product').value);
+      const product = products.find(p => p.id === prodId);
+      if (product) {
+        document.getElementById('order-amount').value = product.price;
+      }
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `show ${type}`;
+      setTimeout(() => {
+        toast.className = '';
+      }, 3000);
+    }
+
+    // Switch tabs
+    function switchTab(tabName) {
+      // Toggle tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.textContent.toLowerCase().includes(tabName.substring(0, 3)));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      // Toggle tab contents
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // Modal helpers
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // Load all data from API
+    async function loadData() {
+      try {
+        const [prodRes, custRes, ordRes] = await Promise.all([
+          fetch('/api/products').then(r => r.json()),
+          fetch('/api/customers').then(r => r.json()),
+          fetch('/api/orders').then(r => r.json())
+        ]);
+
+        products = prodRes;
+        customers = custRes;
+        orders = ordRes;
+
+        renderProducts();
+        renderCustomers();
+        renderOrders();
+      } catch (err) {
+        showToast('Lỗi tải dữ liệu: ' + err.message, 'error');
+      }
+    }
+
+    // RENDER PRODUCTS
+    function renderProducts() {
+      const body = document.getElementById('products-table-body');
+      body.innerHTML = '';
+      products.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td style="font-weight: 500;">${p.name}</td>
+          <td><span class="tag tag-${p.type}">${p.type}</span></td>
+          <td>${formatMoney(p.price)}</td>
+          <td>${p.type === 'physical' ? p.remaining_quantity : '<span style="color: var(--text-muted);">N/A</span>'}</td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${p.description || ''}">${p.description || ''}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-secondary" onclick="editProduct(${p.id})">Sửa</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Xóa</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    // RENDER CUSTOMERS
+    function renderCustomers() {
+      const body = document.getElementById('customers-table-body');
+      body.innerHTML = '';
+      customers.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${c.id}</td>
+          <td style="font-weight: 500;">${c.name}</td>
+          <td>${c.phone}</td>
+          <td>${c.zalo || '<span style="color: var(--text-muted);">-</span>'}</td>
+          <td>${c.registered_at}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-secondary" onclick="editCustomer(${c.id})">Sửa</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Xóa</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    // RENDER ORDERS
+    function renderOrders() {
+      const body = document.getElementById('orders-table-body');
+      body.innerHTML = '';
+      orders.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${o.id}</td>
+          <td style="font-weight: 500;" title="${o.customer_phone}">${o.customer_name}</td>
+          <td>${o.product_name} <span class="tag tag-${o.product_type}" style="font-size:0.7rem; padding:0.1rem 0.3rem">${o.product_type}</span></td>
+          <td>${formatMoney(o.amount)}</td>
+          <td><span class="tag tag-${o.status}">${o.status}</span></td>
+          <td>${o.created_at}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-secondary" onclick="editOrder(${o.id})">Sửa</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteOrder(${o.id})">Xóa</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    // Open Add Product modal
+    function openProductModal() {
+      document.getElementById('product-form').reset();
+      document.getElementById('product-id').value = '';
+      document.getElementById('product-modal-title').textContent = 'Thêm sản phẩm mới';
+      toggleRemainingQty();
+      openModal('product-modal');
+    }
+
+    // Open Edit Product modal
+    function editProduct(id) {
+      const p = products.find(prod => prod.id === id);
+      if (!p) return;
+      document.getElementById('product-id').value = p.id;
+      document.getElementById('product-name').value = p.name;
+      document.getElementById('product-type').value = p.type;
+      document.getElementById('product-price').value = p.price;
+      document.getElementById('product-qty').value = p.remaining_quantity !== null ? p.remaining_quantity : '';
+      document.getElementById('product-desc').value = p.description || '';
+      document.getElementById('product-modal-title').textContent = 'Chỉnh sửa sản phẩm';
+      toggleRemainingQty();
+      openModal('product-modal');
+    }
+
+    // Save Product (Create or Update)
+    async function saveProduct(e) {
+      e.preventDefault();
+      const id = document.getElementById('product-id').value;
+      const payload = {
+        name: document.getElementById('product-name').value.trim(),
+        type: document.getElementById('product-type').value,
+        price: parseFloat(document.getElementById('product-price').value),
+        description: document.getElementById('product-desc').value.trim(),
+        remaining_quantity: document.getElementById('product-qty').value ? parseInt(document.getElementById('product-qty').value) : null
+      };
+
+      const url = id ? `/api/products/${id}` : '/api/products';
+      const method = id ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(id ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm mới thành công!');
+          closeModal('product-modal');
+          loadData();
+        } else {
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // Delete Product
+    async function deleteProduct(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+      try {
+        const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Xóa sản phẩm thành công!');
+          loadData();
+        } else {
+          const data = await res.json();
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // Open Add Customer modal
+    function openCustomerModal() {
+      document.getElementById('customer-form').reset();
+      document.getElementById('customer-id').value = '';
+      document.getElementById('customer-date').value = getNowString();
+      document.getElementById('customer-modal-title').textContent = 'Thêm khách hàng mới';
+      openModal('customer-modal');
+    }
+
+    // Open Edit Customer modal
+    function editCustomer(id) {
+      const c = customers.find(cust => cust.id === id);
+      if (!c) return;
+      document.getElementById('customer-id').value = c.id;
+      document.getElementById('customer-name').value = c.name;
+      document.getElementById('customer-phone').value = c.phone;
+      document.getElementById('customer-zalo').value = c.zalo || '';
+      document.getElementById('customer-date').value = c.registered_at;
+      document.getElementById('customer-modal-title').textContent = 'Chỉnh sửa khách hàng';
+      openModal('customer-modal');
+    }
+
+    // Save Customer
+    async function saveCustomer(e) {
+      e.preventDefault();
+      const id = document.getElementById('customer-id').value;
+      const payload = {
+        name: document.getElementById('customer-name').value.trim(),
+        phone: document.getElementById('customer-phone').value.trim(),
+        zalo: document.getElementById('customer-zalo').value.trim(),
+        registered_at: document.getElementById('customer-date').value.trim()
+      };
+
+      const url = id ? `/api/customers/${id}` : '/api/customers';
+      const method = id ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(id ? 'Cập nhật khách hàng thành công!' : 'Thêm khách hàng mới thành công!');
+          closeModal('customer-modal');
+          loadData();
+        } else {
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // Delete Customer
+    async function deleteCustomer(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) return;
+      try {
+        const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Xóa khách hàng thành công!');
+          loadData();
+        } else {
+          const data = await res.json();
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // Open Add Order modal
+    function openOrderModal() {
+      document.getElementById('order-form').reset();
+      document.getElementById('order-id').value = '';
+      document.getElementById('order-date').value = getNowString();
+      document.getElementById('order-modal-title').textContent = 'Thêm đơn hàng mới';
+
+      // Load customers dropdown
+      const custSelect = document.getElementById('order-customer');
+      custSelect.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
+      customers.forEach(c => {
+        custSelect.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
+      });
+
+      // Load products dropdown
+      const prodSelect = document.getElementById('order-product');
+      prodSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+      products.forEach(p => {
+        const stockText = p.type === 'physical' ? ` (Còn lại: ${p.remaining_quantity})` : '';
+        prodSelect.innerHTML += `<option value="${p.id}">${p.name}${stockText}</option>`;
+      });
+
+      // Hide / enable edit elements
+      document.getElementById('order-product').disabled = false;
+      document.getElementById('order-customer').disabled = false;
+
+      openModal('order-modal');
+    }
+
+    // Open Edit Order modal
+    function editOrder(id) {
+      const o = orders.find(ord => ord.id === id);
+      if (!o) return;
+      document.getElementById('order-id').value = o.id;
+
+      // Dropdowns
+      const custSelect = document.getElementById('order-customer');
+      custSelect.innerHTML = '';
+      customers.forEach(c => {
+        custSelect.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
+      });
+      custSelect.value = o.customer_id;
+      // Disable editing customer/product for existing orders to avoid stock decrement confusion
+      custSelect.disabled = true;
+
+      const prodSelect = document.getElementById('order-product');
+      prodSelect.innerHTML = '';
+      products.forEach(p => {
+        const stockText = p.type === 'physical' ? ` (Còn lại: ${p.remaining_quantity})` : '';
+        prodSelect.innerHTML += `<option value="${p.id}">${p.name}${stockText}</option>`;
+      });
+      prodSelect.value = o.product_id;
+      prodSelect.disabled = true;
+
+      document.getElementById('order-amount').value = o.amount;
+      document.getElementById('order-status').value = o.status;
+      document.getElementById('order-date').value = o.created_at;
+      document.getElementById('order-modal-title').textContent = 'Chỉnh sửa đơn hàng';
+      openModal('order-modal');
+    }
+
+    // Save Order
+    async function saveOrder(e) {
+      e.preventDefault();
+      const id = document.getElementById('order-id').value;
+      const customer_id = document.getElementById('order-customer').value;
+      const product_id = document.getElementById('order-product').value;
+      
+      const payload = {
+        customer_id: parseInt(customer_id),
+        product_id: parseInt(product_id),
+        amount: parseFloat(document.getElementById('order-amount').value),
+        status: document.getElementById('order-status').value,
+        created_at: document.getElementById('order-date').value.trim()
+      };
+
+      const url = id ? `/api/orders/${id}` : '/api/orders';
+      const method = id ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(id ? 'Cập nhật đơn hàng thành công!' : 'Tạo đơn hàng mới và cập nhật tồn kho thành công!');
+          closeModal('order-modal');
+          loadData();
+        } else {
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // Delete Order
+    async function deleteOrder(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này? (Xóa đơn hàng sẽ không hoàn lại số lượng tồn kho đã trừ)')) return;
+      try {
+        const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Xóa đơn hàng thành công!');
+          loadData();
+        } else {
+          const data = await res.json();
+          showToast(data.error || 'Có lỗi xảy ra!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

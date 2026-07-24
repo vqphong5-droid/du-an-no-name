@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Nguyễn Văn A",
+    "phone": "0912345678",
+    "zalo": "0912345678",
+    "registered_at": "2026-07-24 10:00:00"
+  },
+  {
+    "name": "Trần Thị B",
+    "phone": "0987654321",
+    "zalo": "zalo_tranthib",
+    "registered_at": "2026-07-24 10:15:00"
+  },
+  {
+    "name": "Lê Văn C",
+    "phone": "0905123456",
+    "zalo": "",
+    "registered_at": "2026-07-24 10:30:00"
+  },
+  {
+    "name": "Trùng Lặp A",
+    "phone": "0912345678",
+    "zalo": "zalo_new",
+    "registered_at": "2026-07-24 11:00:00"
+  },
+  {
+    "name": "Phạm Văn D",
+    "phone": "0934567890",
+    "zalo": "zalo_d",
+    "registered_at": "2026-07-24 11:15:00"
+  }
+]
