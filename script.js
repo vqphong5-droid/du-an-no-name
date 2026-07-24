@@ -305,6 +305,9 @@ function startPaymentProcess(phone, packageVal) {
   setupCopyBtn('btn-copy-amount', 'paymentAmount', true);
   setupCopyBtn('btn-copy-content', 'paymentContent');
 
+  // Record the start time of the checkout process (with 1-minute buffer for clock drift)
+  const checkoutStartTime = new Date(Date.now() - 60000);
+
   // Open modal
   paymentModal.classList.add('active');
 
@@ -326,7 +329,7 @@ function startPaymentProcess(phone, packageVal) {
 
   // Polling SePay API
   paymentCheckInterval = setInterval(() => {
-    pollSepayApi(amount, content);
+    pollSepayApi(amount, content, checkoutStartTime);
   }, 5000);
 }
 
@@ -339,7 +342,7 @@ function stopPaymentProcess() {
   clearInterval(paymentCountdownInterval);
 }
 
-function pollSepayApi(targetAmount, targetContent) {
+function pollSepayApi(targetAmount, targetContent, checkoutStartTime) {
   const statusText = document.getElementById('paymentStatusText');
   const statusGroup = document.querySelector('.payment-status');
   const successModal = document.getElementById('successModal');
@@ -360,7 +363,13 @@ function pollSepayApi(targetAmount, targetContent) {
       const matchedTx = data.transactions.find(tx => {
         const amountIn = parseFloat(tx.amount_in);
         const content = tx.transaction_content || '';
-        return amountIn === targetAmount && content.toUpperCase().includes(targetContent.toUpperCase());
+        // Phân tích ngày giao dịch theo múi giờ Việt Nam (GMT+7)
+        const txDate = new Date(tx.transaction_date.replace(' ', 'T') + '+07:00');
+        
+        // Kiểm tra khớp số tiền, nội dung chứa mã thanh toán, và thời gian giao dịch phải sau lúc tạo đơn hàng
+        return amountIn === targetAmount && 
+               content.toUpperCase().includes(targetContent.toUpperCase()) &&
+               txDate >= checkoutStartTime;
       });
 
       if (matchedTx) {
