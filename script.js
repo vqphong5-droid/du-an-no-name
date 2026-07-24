@@ -218,25 +218,36 @@ function initForm() {
       return;
     }
 
+    // Disable button and show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý đăng ký...';
+
+    // Save registration info to sessionStorage
+    const registrationData = {
+      fullName: name,
+      phone: phone,
+      email: email,
+      package: packageVal
+    };
+    sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
+
     // Tạo snapshot tĩnh của dữ liệu form trước khi reset (tránh trình duyệt gửi dữ liệu rỗng)
     const formData = new URLSearchParams(new FormData(form));
 
-    // Mở Modal thanh toán ngay lập tức để tăng tốc trải nghiệm (dưới 0.1s)
-    startPaymentProcess(phone, packageVal);
-    
-    // Reset form và khôi phục trạng thái nút bấm ngay lập tức
-    form.reset();
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalBtnText;
-
-    // Thực hiện lưu dữ liệu vào Google Sheets dưới background (không chặn giao diện người dùng)
+    // Thực hiện lưu dữ liệu vào Google Sheets dưới background (có keepalive)
     fetch("https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec", {
       method: "POST",
-      body: formData
+      body: formData,
+      keepalive: true
+    })
+    .then(() => {
+      // Chuyển hướng sang trang checkout
+      window.location.href = '/checkout';
     })
     .catch((error) => {
-      // Ghi nhận lỗi ngầm nếu có (không làm gián đoạn trải nghiệm mua hàng của khách)
       console.error("Lỗi lưu Google Sheets ở background:", error);
+      // Vẫn chuyển hướng kể cả khi lỗi lưu sheet để không gián đoạn trải nghiệm
+      window.location.href = '/checkout';
     });
   });
 

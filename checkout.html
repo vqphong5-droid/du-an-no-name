@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hoàn tất thanh toán đăng ký khóa học Đồng Hành 1-1 Xây Dựng Thương Hiệu Cá Nhân Thực Chiến. Chuyển khoản tự động qua VietQR nhanh chóng.">
+  <title>Thanh Toán Đăng Ký - Xây Kênh 5.0 Thực Chiến</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="checkout-page">
+
+  <!-- Decorative Glow Blobs -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+  <div class="glow-bg glow-3"></div>
+  <div class="glow-bg glow-4"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-container">
+      <a href="/" class="logo">
+        <span>XÂY KÊNH 5.0</span>
+        <div class="logo-badge">THỰC CHIẾN</div>
+      </a>
+      <a href="/" class="nav-btn"><i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ</a>
+    </div>
+  </header>
+
+  <!-- Checkout Container -->
+  <main class="checkout-section">
+    <div class="container">
+      
+      <!-- Breadcrumbs -->
+      <div class="breadcrumbs">
+        <a href="/">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i> 
+        <span>Thanh toán</span>
+      </div>
+
+      <!-- Main Payment Processing View -->
+      <div class="checkout-grid" id="checkoutGrid">
+        
+        <!-- Left Side: Order details & User Info -->
+        <div class="checkout-left-col">
+          
+          <!-- Order Summary Card -->
+          <div class="checkout-card order-summary-card">
+            <h2 class="card-title"><i class="fa-solid fa-cart-shopping"></i> Tóm tắt đơn hàng</h2>
+            
+            <div class="order-item-detail">
+              <div class="order-item-header">
+                <span class="product-name">Chương Trình Đồng Hành 1-1 Xây Dựng Thương Hiệu Cá Nhân Thực Chiến</span>
+                <span class="product-badge" id="checkoutPackageBadge">Gói 14 Ngày</span>
+              </div>
+              <p class="product-desc" id="checkoutPackageDesc">Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.</p>
+            </div>
+            
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span>Giá gốc khóa học</span>
+                <span class="price-old" id="checkoutOriginalPrice">100.000đ</span>
+              </div>
+              <div class="price-row">
+                <span>Ưu đãi giảm giá (50%)</span>
+                <span class="price-discount" id="checkoutDiscount">-50.000đ</span>
+              </div>
+              <hr class="price-divider">
+              <div class="price-row total-row">
+                <span>Tổng tiền cần thanh toán</span>
+                <span class="price-final" id="checkoutFinalPrice">50.000đ</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Customer Info Card -->
+          <div class="checkout-card customer-info-card">
+            <h2 class="card-title"><i class="fa-solid fa-user"></i> Thông tin khách hàng</h2>
+            
+            <div class="info-list">
+              <div class="info-list-item">
+                <span class="info-lbl">Họ và tên:</span>
+                <span class="info-val" id="custName">...</span>
+              </div>
+              <div class="info-list-item">
+                <span class="info-lbl">Số điện thoại:</span>
+                <span class="info-val" id="custPhone">...</span>
+              </div>
+              <div class="info-list-item">
+                <span class="info-lbl">Email:</span>
+                <span class="info-val" id="custEmail">...</span>
+              </div>
+              <div class="info-list-item">
+                <span class="info-lbl">Trạng thái đăng ký:</span>
+                <span class="info-val status-badge waiting"><i class="fa-solid fa-spinner fa-spin"></i> Chờ thanh toán</span>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+
+        <!-- Right Side: VietQR and Bank Transfer details -->
+        <div class="checkout-right-col">
+          
+          <!-- Payment Info Card -->
+          <div class="checkout-card payment-info-card">
+            <div class="payment-title-group">
+              <h2 class="card-title"><i class="fa-solid fa-wallet"></i> Chuyển khoản qua VietQR tự động</h2>
+              <p class="card-subtitle">Hệ thống kích hoạt tài khoản của bạn ngay sau khi nhận được tiền</p>
+            </div>
+            
+            <div class="payment-layout">
+              <!-- QR Code Column -->
+              <div class="checkout-qr-wrapper">
+                <div class="qr-box">
+                  <img id="checkoutQrImg" src="" alt="VietQR Payment Code">
+                  <div class="qr-scan-line"></div>
+                </div>
+                <div class="countdown-timer">
+                  <i class="fa-solid fa-hourglass-half"></i> Giao dịch hết hạn sau: <span id="checkoutTimer">10:00</span>
+                </div>
+              </div>
+              
+              <!-- Transfer details Column -->
+              <div class="checkout-details-wrapper">
+                <div class="detail-item">
+                  <span class="detail-lbl">Ngân hàng nhận</span>
+                  <div class="detail-val-group">
+                    <span class="detail-val font-bold" id="bankName">...</span>
+                  </div>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-lbl">Chủ tài khoản</span>
+                  <span class="detail-val font-bold" id="bankHolder">...</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-lbl">Số tài khoản</span>
+                  <div class="detail-val-group">
+                    <span class="detail-val font-bold highlight-text" id="bankNumber">...</span>
+                    <button class="btn-copy-checkout" id="copyAccBtn"><i class="fa-regular fa-copy"></i> Sao chép</button>
+                  </div>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-lbl">Số tiền cần chuyển</span>
+                  <div class="detail-val-group">
+                    <span class="detail-val price-final highlight-price" id="bankAmount">...</span>
+                    <button class="btn-copy-checkout" id="copyAmountBtn"><i class="fa-regular fa-copy"></i> Sao chép</button>
+                  </div>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-lbl">Nội dung chuyển khoản</span>
+                  <div class="detail-val-group">
+                    <span class="detail-val font-bold highlight-content" id="bankContent">...</span>
+                    <button class="btn-copy-checkout" id="copyContentBtn"><i class="fa-regular fa-copy"></i> Sao chép</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="payment-card-footer">
+              <div class="live-status-bar">
+                <div class="status-indicator-ping">
+                  <span class="ping"></span>
+                  <span class="dot"></span>
+                </div>
+                <span id="liveStatusText">Đang chờ quét giao dịch từ ngân hàng...</span>
+              </div>
+              
+              <div class="payment-notice">
+                <i class="fa-solid fa-circle-info"></i> 
+                <span><strong>Lưu ý quan trọng:</strong> Vui lòng chuyển khoản chính xác <strong>Số tiền</strong> và <strong>Nội dung chuyển khoản</strong> ở trên để hệ thống tự động xác nhận trong vòng 10 giây.</span>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Success Screen (Hidden by default, shown when payment successful) -->
+      <div class="checkout-success-view" id="checkoutSuccessView" style="display: none;">
+        <div class="success-illustration">
+          <div class="success-icon-ring animate-ring"></div>
+          <div class="success-icon-circle animate-circle">
+            <i class="fa-solid fa-check"></i>
+          </div>
+        </div>
+        
+        <h1 class="success-title">Thanh Toán Thành Công!</h1>
+        <p class="success-subtitle">Hệ thống đã ghi nhận giao dịch của bạn thành công qua SePay.</p>
+        
+        <div class="success-info-box">
+          <div class="success-info-header">
+            <h3>Chi tiết đơn hàng</h3>
+            <span class="success-tx-badge" id="successTxId">Mã GD: ...</span>
+          </div>
+          <hr class="success-divider">
+          <div class="success-info-grid">
+            <div class="success-info-item">
+              <span class="success-info-lbl">Học viên</span>
+              <span class="success-info-val" id="successCustName">...</span>
+            </div>
+            <div class="success-info-item">
+              <span class="success-info-lbl">Số điện thoại</span>
+              <span class="success-info-val" id="successCustPhone">...</span>
+            </div>
+            <div class="success-info-item">
+              <span class="success-info-lbl">Gói đăng ký</span>
+              <span class="success-info-val" id="successPackageName">...</span>
+            </div>
+            <div class="success-info-item">
+              <span class="success-info-lbl">Số tiền thanh toán</span>
+              <span class="success-info-val highlight-green" id="successAmount">...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="success-next-steps">
+          <h3><i class="fa-solid fa-circle-play"></i> Các bước tiếp theo cần làm:</h3>
+          <ul>
+            <li>
+              <div class="step-num">1</div>
+              <div class="step-txt">
+                <strong>Chụp màn hình:</strong> Vui lòng chụp lại màn hình xác nhận thanh toán thành công này để làm minh chứng khi cần thiết.
+              </div>
+            </li>
+            <li>
+              <div class="step-num">2</div>
+              <div class="step-txt">
+                <strong>Kết nối Zalo:</strong> Đội ngũ hỗ trợ (Mentor) sẽ chủ động nhắn tin Zalo cho bạn qua số điện thoại <strong id="successPhoneRef">...</strong> trong vòng 24 giờ tới.
+              </div>
+            </li>
+            <li>
+              <div class="step-num">3</div>
+              <div class="step-txt">
+                <strong>Chuẩn bị học:</strong> Bạn sẽ nhận được thông tin lịch khai giảng, tài liệu chuẩn bị, và liên kết tham gia phòng học trực tiếp.
+              </div>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="success-actions">
+          <a href="/" class="btn-primary success-btn-home"><i class="fa-solid fa-house"></i> Quay lại Trang chủ</a>
+          <a href="https://zalo.me/0376373737" target="_blank" class="btn-secondary success-btn-support"><i class="fa-solid fa-comments"></i> Hỗ trợ Zalo khẩn cấp</a>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-bottom">
+        <p>&copy; 2026 Xây Kênh 5.0. All rights reserved. Powered by Vinmaredu.</p>
+        <p>Điều khoản dịch vụ | Chính sách bảo mật</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="checkout.js"></script>
+</body>
+</html>

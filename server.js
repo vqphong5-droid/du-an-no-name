@@ -39,8 +39,16 @@ const server = http.createServer((req, res) => {
     serveStaticFile(res, path.join(__dirname, 'admin.html'), 'text/html; charset=utf-8');
     return;
   }
+  if (pathname === '/checkout' || pathname === '/checkout/') {
+    serveStaticFile(res, path.join(__dirname, 'checkout.html'), 'text/html; charset=utf-8');
+    return;
+  }
   if (pathname === '/script.js') {
     serveStaticFile(res, path.join(__dirname, 'script.js'), 'application/javascript; charset=utf-8');
+    return;
+  }
+  if (pathname === '/checkout.js') {
+    serveStaticFile(res, path.join(__dirname, 'checkout.js'), 'application/javascript; charset=utf-8');
     return;
   }
   if (pathname === '/style.css') {
