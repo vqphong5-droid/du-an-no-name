@@ -1,7 +1,7 @@
 // SePay Payment Configurations
 // Hãy dán thông tin tài khoản ngân hàng và API token của bạn vào đây
 const SEPAY_CONFIG = {
-  API_TOKEN: '2R3XAQWWILIY1IT5KZSG7GU9NEWCCOAP6BSXFVIDOBGQGYBVW8BZVZS7KRSYTAEU', // Dán API Token lấy từ Bước 3 vào đây
+  API_TOKEN: 'GR6VNOEBNHSGZA4DXTTF8IZK74ERN8PSS7CSAN1RWMI9YXV2U02BLYRUF0E3EVJL', // Dán API Token lấy từ Bước 3 vào đây
   BANK_ACC: '0010197779999', // Dán Số tài khoản ngân hàng nhận tiền vào đây
   BANK_NAME: 'MBBank', // Ví dụ: MBBank, Vietcombank, ACB, VPBank, Techcombank...
   ACCOUNT_HOLDER: 'VU QUANG PHONG', // Ví dụ: NGUYEN VAN A (Viết hoa không dấu)
