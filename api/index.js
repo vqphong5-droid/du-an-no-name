@@ -1,32 +1,90 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { DatabaseSync } = require('node:sqlite');
 
-let dbPath;
+let db;
 
-if (process.env.VERCEL) {
-  // On Vercel: copy DB to /tmp to allow read/write operations in read-only environment
-  const srcDbPath = path.join(process.cwd(), 'brain.db');
-  dbPath = path.join('/tmp', 'brain.db');
+// 1. DATABASE ADAPTER SELECTION (TURSO CLOUD SQLite vs LOCAL SQLite)
+if (process.env.TURSO_DATABASE_URL) {
+  // Use Turso Cloud DB (for Vercel persistence)
+  const { createClient } = require('@libsql/client');
+  const client = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN
+  });
   
-  if (!fs.existsSync(dbPath)) {
-    try {
-      fs.copyFileSync(srcDbPath, dbPath);
-    } catch (e) {
-      console.error("Failed to copy database to /tmp:", e);
-      // Fallback to source database if copy fails
-      dbPath = srcDbPath;
+  db = {
+    all: async (sql, params = []) => {
+      const res = await client.execute({ sql, args: params });
+      return res.rows;
+    },
+    run: async (sql, params = []) => {
+      const res = await client.execute({ sql, args: params });
+      return { lastInsertRowid: Number(res.lastInsertRowid) };
+    },
+    get: async (sql, params = []) => {
+      const res = await client.execute({ sql, args: params });
+      return res.rows[0] || null;
+    },
+    executeTransaction: async (queries) => {
+      // queries is an array of { sql, args }
+      const res = await client.batch(queries, "write");
+      const lastInsertRes = res[res.length - 1];
+      return { lastInsertRowid: Number(lastInsertRes.lastInsertRowid) };
     }
-  }
+  };
 } else {
-  // Local development: connect directly to local workspace file for persistence
-  dbPath = path.join(process.cwd(), 'brain.db');
+  // Use local SQLite (synchronous underlying, wrapped in async interface)
+  const { DatabaseSync } = require('node:sqlite');
+  
+  let dbPath;
+  if (process.env.VERCEL) {
+    // Vercel fallback (should copy default brain.db to writable /tmp)
+    const srcDbPath = path.join(process.cwd(), 'brain.db');
+    dbPath = path.join('/tmp', 'brain.db');
+    if (!fs.existsSync(dbPath)) {
+      try {
+        fs.copyFileSync(srcDbPath, dbPath);
+      } catch (e) {
+        console.error("Failed to copy database to /tmp:", e);
+        dbPath = srcDbPath;
+      }
+    }
+  } else {
+    // Local dev environment
+    dbPath = path.join(process.cwd(), 'brain.db');
+  }
+
+  const localDb = new DatabaseSync(dbPath);
+  localDb.prepare("PRAGMA foreign_keys = ON;").run();
+
+  db = {
+    all: async (sql, params = []) => {
+      return localDb.prepare(sql).all(...params);
+    },
+    run: async (sql, params = []) => {
+      const info = localDb.prepare(sql).run(...params);
+      return { lastInsertRowid: Number(info.lastInsertRowid) };
+    },
+    get: async (sql, params = []) => {
+      return localDb.prepare(sql).get(...params);
+    },
+    executeTransaction: async (queries) => {
+      localDb.prepare("BEGIN TRANSACTION;").run();
+      try {
+        let lastInsertRowid = null;
+        for (const q of queries) {
+          const info = localDb.prepare(q.sql).run(...q.args);
+          lastInsertRowid = info.lastInsertRowid;
+        }
+        localDb.prepare("COMMIT;").run();
+        return { lastInsertRowid: Number(lastInsertRowid) };
+      } catch (err) {
+        localDb.prepare("ROLLBACK;").run();
+        throw err;
+      }
+    }
+  };
 }
-
-const db = new DatabaseSync(dbPath);
-
-// Enable foreign keys
-db.prepare("PRAGMA foreign_keys = ON;").run();
 
 // Helper to parse JSON request body
 function getJsonBody(req) {
@@ -67,7 +125,7 @@ module.exports = async (req, res) => {
   if (pathname === '/api/products') {
     if (method === 'GET') {
       try {
-        const rows = db.prepare("SELECT * FROM products ORDER BY id DESC").all();
+        const rows = await db.all("SELECT * FROM products ORDER BY id DESC");
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(rows));
       } catch (e) {
@@ -96,11 +154,10 @@ module.exports = async (req, res) => {
 
         const qty = type === 'physical' ? parseInt(remaining_quantity) : null;
         
-        const stmt = db.prepare(`
+        const runResult = await db.run(`
           INSERT INTO products (name, type, price, description, remaining_quantity)
           VALUES (?, ?, ?, ?, ?)
-        `);
-        const runResult = stmt.run(name, type, parseFloat(price), description || '', qty);
+        `, [name, type, parseFloat(price), description || '', qty]);
         
         res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id: runResult.lastInsertRowid, name, type, price, description, remaining_quantity: qty }));
@@ -134,12 +191,11 @@ module.exports = async (req, res) => {
 
         const qty = type === 'physical' ? parseInt(remaining_quantity) : null;
         
-        const stmt = db.prepare(`
+        await db.run(`
           UPDATE products
           SET name = ?, type = ?, price = ?, description = ?, remaining_quantity = ?
           WHERE id = ?
-        `);
-        stmt.run(name, type, parseFloat(price), description || '', qty, id);
+        `, [name, type, parseFloat(price), description || '', qty, id]);
         
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id, name, type, price, description, remaining_quantity: qty }));
@@ -152,7 +208,7 @@ module.exports = async (req, res) => {
 
     if (method === 'DELETE') {
       try {
-        db.prepare("DELETE FROM products WHERE id = ?").run(id);
+        await db.run("DELETE FROM products WHERE id = ?", [id]);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -167,7 +223,7 @@ module.exports = async (req, res) => {
   if (pathname === '/api/customers') {
     if (method === 'GET') {
       try {
-        const rows = db.prepare("SELECT * FROM customers ORDER BY id DESC").all();
+        const rows = await db.all("SELECT * FROM customers ORDER BY id DESC");
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(rows));
       } catch (e) {
@@ -188,11 +244,10 @@ module.exports = async (req, res) => {
           return;
         }
         
-        const stmt = db.prepare(`
+        const runResult = await db.run(`
           INSERT INTO customers (name, phone, zalo, registered_at)
           VALUES (?, ?, ?, ?)
-        `);
-        const runResult = stmt.run(name, phone, zalo || '', registered_at);
+        `, [name, phone, zalo || '', registered_at]);
         
         res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id: runResult.lastInsertRowid, name, phone, zalo, registered_at }));
@@ -222,12 +277,11 @@ module.exports = async (req, res) => {
           return;
         }
         
-        const stmt = db.prepare(`
+        await db.run(`
           UPDATE customers
           SET name = ?, phone = ?, zalo = ?, registered_at = ?
           WHERE id = ?
-        `);
-        stmt.run(name, phone, zalo || '', registered_at, id);
+        `, [name, phone, zalo || '', registered_at, id]);
         
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id, name, phone, zalo, registered_at }));
@@ -244,7 +298,7 @@ module.exports = async (req, res) => {
 
     if (method === 'DELETE') {
       try {
-        db.prepare("DELETE FROM customers WHERE id = ?").run(id);
+        await db.run("DELETE FROM customers WHERE id = ?", [id]);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -259,7 +313,7 @@ module.exports = async (req, res) => {
   if (pathname === '/api/orders') {
     if (method === 'GET') {
       try {
-        const rows = db.prepare(`
+        const rows = await db.all(`
           SELECT o.id, o.customer_id, c.name as customer_name, c.phone as customer_phone,
                  o.product_id, p.name as product_name, p.type as product_type,
                  o.amount, o.status, o.created_at
@@ -267,7 +321,7 @@ module.exports = async (req, res) => {
           JOIN customers c ON o.customer_id = c.id
           JOIN products p ON o.product_id = p.id
           ORDER BY o.id DESC
-        `).all();
+        `);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(rows));
       } catch (e) {
@@ -288,14 +342,14 @@ module.exports = async (req, res) => {
           return;
         }
 
-        const product = db.prepare("SELECT * FROM products WHERE id = ?").get(parseInt(product_id));
+        const product = await db.get("SELECT * FROM products WHERE id = ?", [parseInt(product_id)]);
         if (!product) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: 'Sản phẩm không tồn tại!' }));
           return;
         }
 
-        const customer = db.prepare("SELECT * FROM customers WHERE id = ?").get(parseInt(customer_id));
+        const customer = await db.get("SELECT * FROM customers WHERE id = ?", [parseInt(customer_id)]);
         if (!customer) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: 'Khách hàng không tồn tại!' }));
@@ -315,46 +369,33 @@ module.exports = async (req, res) => {
           }
         }
 
-        db.prepare("BEGIN TRANSACTION;").run();
-        try {
-          if (product.type === 'physical') {
-            db.prepare(`
-              UPDATE products
-              SET remaining_quantity = remaining_quantity - 1
-              WHERE id = ?
-            `).run(product.id);
-          }
-
-          const stmt = db.prepare(`
-            INSERT INTO orders (customer_id, product_id, amount, status, created_at)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-          const runResult = stmt.run(
-            parseInt(customer_id),
-            parseInt(product_id),
-            parseFloat(amount),
-            status,
-            created_at
-          );
-          
-          db.prepare("COMMIT;").run();
-
-          res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({
-            id: runResult.lastInsertRowid,
-            customer_id,
-            customer_name: customer.name,
-            product_id,
-            product_name: product.name,
-            product_type: product.type,
-            amount,
-            status,
-            created_at
-          }));
-        } catch (err) {
-          db.prepare("ROLLBACK;").run();
-          throw err;
+        // Build transaction query batch
+        const queries = [];
+        if (product.type === 'physical') {
+          queries.push({
+            sql: `UPDATE products SET remaining_quantity = remaining_quantity - 1 WHERE id = ?`,
+            args: [product.id]
+          });
         }
+        queries.push({
+          sql: `INSERT INTO orders (customer_id, product_id, amount, status, created_at) VALUES (?, ?, ?, ?, ?)`,
+          args: [parseInt(customer_id), parseInt(product_id), parseFloat(amount), status, created_at]
+        });
+
+        const runResult = await db.executeTransaction(queries);
+
+        res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          id: runResult.lastInsertRowid,
+          customer_id,
+          customer_name: customer.name,
+          product_id,
+          product_name: product.name,
+          product_type: product.type,
+          amount,
+          status,
+          created_at
+        }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: e.message }));
@@ -377,12 +418,11 @@ module.exports = async (req, res) => {
           return;
         }
         
-        const stmt = db.prepare(`
+        await db.run(`
           UPDATE orders
           SET customer_id = ?, product_id = ?, amount = ?, status = ?, created_at = ?
           WHERE id = ?
-        `);
-        stmt.run(parseInt(customer_id), parseInt(product_id), parseFloat(amount), status, created_at, id);
+        `, [parseInt(customer_id), parseInt(product_id), parseFloat(amount), status, created_at, id]);
         
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id, customer_id, product_id, amount, status, created_at }));
@@ -395,7 +435,7 @@ module.exports = async (req, res) => {
 
     if (method === 'DELETE') {
       try {
-        db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+        await db.run("DELETE FROM orders WHERE id = ?", [id]);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
