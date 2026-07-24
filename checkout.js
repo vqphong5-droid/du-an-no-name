@@ -238,6 +238,73 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime, regData) {
         .then(result => console.log('Cập nhật trạng thái Google Sheet:', result))
         .catch(err => console.error("Lỗi cập nhật Google Sheet:", err));
 
+        // Update local SQLite Database Order
+        if (regData.orderId && regData.customerId) {
+          const updateOrderData = {
+            customer_id: regData.customerId,
+            product_id: regData.package === '14days' ? 1 : 2,
+            amount: regData.package === '14days' ? 50000 : 6990000,
+            status: 'completed',
+            created_at: regData.createdAt || new Date().toISOString()
+          };
+          
+          fetch(`/api/orders/${regData.orderId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateOrderData)
+          })
+          .then(res => res.json())
+          .then(resData => console.log('SQLite Order Updated:', resData))
+          .catch(err => console.error('Error updating SQLite Order:', err));
+        } else {
+          // If no orderId/customerId exists (e.g. fallback occurred or API failed on submit)
+          // Find or create customer, then create completed order.
+          const formattedTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+          fetch('/api/customers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: regData.fullName,
+              phone: regData.phone,
+              zalo: '',
+              registered_at: regData.createdAt || formattedTime
+            })
+          })
+          .then(async (res) => {
+            if (res.ok) {
+              const cust = await res.json();
+              return cust.id;
+            } else {
+              return fetch('/api/customers')
+                .then(r => r.json())
+                .then(customers => {
+                  const found = customers.find(c => c.phone === regData.phone);
+                  return found ? found.id : null;
+                });
+            }
+          })
+          .then((customerId) => {
+            if (!customerId) return;
+            const amount = regData.package === '14days' ? 50000 : 6990000;
+            const productId = regData.package === '14days' ? 1 : 2;
+
+            fetch('/api/orders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customer_id: customerId,
+                product_id: productId,
+                amount: amount,
+                status: 'completed',
+                created_at: regData.createdAt || formattedTime
+              })
+            })
+            .then(res => res.json())
+            .then(orderData => console.log('SQLite Order Created (Fallback):', orderData))
+            .catch(err => console.error('Error creating fallback SQLite Order:', err));
+          });
+        }
+
         // Wait 1.5 seconds then show success screen
         setTimeout(() => {
           showSuccessScreen(matchedTx, regData);

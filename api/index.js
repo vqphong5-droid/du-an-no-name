@@ -136,6 +136,20 @@ async function ensureDbInitialized() {
       )
     `);
     
+    // Auto-populate products table if empty
+    const productsCount = await db.get("SELECT COUNT(*) as count FROM products");
+    if (productsCount && (productsCount.count === 0 || productsCount.count === '0')) {
+      await db.run(`
+        INSERT INTO products (id, name, type, price, description)
+        VALUES (1, 'GÓI ĐỒNG HÀNH 14 NGÀY', 'service', 50000.0, 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.')
+      `);
+      await db.run(`
+        INSERT INTO products (id, name, type, price, description)
+        VALUES (2, 'GÓI ĐỒNG HÀNH 30 NGÀY', 'service', 6990000.0, 'Kèm cặp 1-1 trực tiếp, tối ưu toàn diện từ thiết lập kênh kỹ thuật đến kịch bản nội dung hoàn chỉnh trong 30 ngày.')
+      `);
+      console.log("Default products populated in database.");
+    }
+    
     // Auto-import waitlist if customers table is empty
     const customersCount = await db.get("SELECT COUNT(*) as count FROM customers");
     if (customersCount && (customersCount.count === 0 || customersCount.count === '0')) {

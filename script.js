@@ -222,33 +222,116 @@ function initForm() {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý đăng ký...';
 
-    // Save registration info to sessionStorage
-    const registrationData = {
-      fullName: name,
-      phone: phone,
-      email: email,
-      package: packageVal
-    };
-    sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
+    const formattedTime = getFormattedDateTime();
 
-    // Tạo snapshot tĩnh của dữ liệu form trước khi reset (tránh trình duyệt gửi dữ liệu rỗng)
-    const formData = new URLSearchParams(new FormData(form));
+    function getFormattedDateTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
 
-    // Thực hiện lưu dữ liệu vào Google Sheets dưới background (có keepalive)
-    fetch("https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec", {
-      method: "POST",
-      body: formData,
-      keepalive: true
+    // Step 1: Create or find customer in SQLite
+    fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        phone: phone,
+        zalo: '',
+        registered_at: formattedTime
+      })
     })
-    .then(() => {
-      // Chuyển hướng sang trang checkout
-      window.location.href = '/checkout';
+    .then(async (res) => {
+      if (res.ok) {
+        const customer = await res.json();
+        return customer.id;
+      } else {
+        // Customer probably exists (unique constraint). Fetch all to find the matching phone.
+        return fetch('/api/customers')
+          .then(r => r.json())
+          .then(customers => {
+            const found = customers.find(c => c.phone === phone);
+            return found ? found.id : null;
+          });
+      }
+    })
+    .then((customerId) => {
+      if (!customerId) throw new Error('Không tạo hoặc tìm thấy khách hàng trong CSDL.');
+
+      // Step 2: Create a pending order in SQLite
+      const amount = packageVal === '14days' ? 50000 : 6990000;
+      const productId = packageVal === '14days' ? 1 : 2;
+
+      return fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: customerId,
+          product_id: productId,
+          amount: amount,
+          status: 'pending',
+          created_at: formattedTime
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Không tạo được đơn hàng trong CSDL.');
+        return res.json();
+      })
+      .then(order => {
+        return { customerId, orderId: order.id };
+      });
+    })
+    .then(({ customerId, orderId }) => {
+      // Save full registration info including SQLite IDs to sessionStorage
+      const registrationData = {
+        fullName: name,
+        phone: phone,
+        email: email,
+        package: packageVal,
+        customerId: customerId,
+        orderId: orderId,
+        createdAt: formattedTime
+      };
+      sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
+
+      // Trigger Google Sheets and redirect
+      triggerGoogleSheetsAndRedirect();
     })
     .catch((error) => {
-      console.error("Lỗi lưu Google Sheets ở background:", error);
-      // Vẫn chuyển hướng kể cả khi lỗi lưu sheet để không gián đoạn trải nghiệm
-      window.location.href = '/checkout';
+      console.error('Lỗi khi đồng bộ CSDL SQLite:', error);
+      // Fallback: Save local info without ids and proceed
+      const registrationData = {
+        fullName: name,
+        phone: phone,
+        email: email,
+        package: packageVal
+      };
+      sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
+      triggerGoogleSheetsAndRedirect();
     });
+
+    function triggerGoogleSheetsAndRedirect() {
+      // Tạo snapshot tĩnh của dữ liệu form trước khi reset (tránh trình duyệt gửi dữ liệu rỗng)
+      const formData = new URLSearchParams(new FormData(form));
+
+      fetch("https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec", {
+        method: "POST",
+        body: formData,
+        keepalive: true
+      })
+      .then(() => {
+        window.location.href = '/checkout';
+      })
+      .catch((error) => {
+        console.error("Lỗi lưu Google Sheets ở background:", error);
+        window.location.href = '/checkout';
+      });
+    }
   });
 
   // Close success modal event
