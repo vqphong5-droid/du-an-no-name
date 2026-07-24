@@ -218,31 +218,25 @@ function initForm() {
       return;
     }
 
-    // Show loading state on button
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Đang xử lý đăng ký...`;
+    // Lưu tạm dữ liệu form trước khi reset
+    const formData = new FormData(form);
 
-    // Submit to Google Sheets Web App
+    // Mở Modal thanh toán ngay lập tức để tăng tốc trải nghiệm (dưới 0.1s)
+    startPaymentProcess(phone, packageVal);
+    
+    // Reset form và khôi phục trạng thái nút bấm ngay lập tức
+    form.reset();
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+
+    // Thực hiện lưu dữ liệu vào Google Sheets dưới background (không chặn giao diện người dùng)
     fetch("https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec", {
       method: "POST",
-      body: new FormData(form)
-    })
-    .then(() => {
-      // Setup and Show Payment Modal instead of direct success
-      startPaymentProcess(phone, packageVal);
-      
-      // Reset form
-      form.reset();
-      
-      // Reset button
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnText;
+      body: formData
     })
     .catch((error) => {
-      alert("Có lỗi xảy ra khi gửi đăng ký. Vui lòng thử lại!");
-      console.error(error);
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnText;
+      // Ghi nhận lỗi ngầm nếu có (không làm gián đoạn trải nghiệm mua hàng của khách)
+      console.error("Lỗi lưu Google Sheets ở background:", error);
     });
   });
 
