@@ -460,7 +460,7 @@
             <li><i class="fa-solid fa-circle-check"></i> Edit sẵn 5 video đầu tiên cho bạn (Làm hộ phần khó)</li>
             <li><i class="fa-solid fa-circle-check"></i> Hỗ trợ giải đáp thắc mắc 1-1 hàng ngày</li>
           </ul>
-          <a href="#register" class="btn-primary price-btn">ĐĂNG KÝ NGAY</a>
+          <a href="#register" class="btn-primary price-btn" data-package="14days">ĐĂNG KÝ NGAY</a>
         </div>
 
         <!-- Gói 2 (Featured) -->
@@ -481,7 +481,7 @@
             <li><i class="fa-solid fa-circle-check"></i> Zoom 1-1 tư vấn chiến lược hàng tuần với Cô Thiện</li>
             <li><i class="fa-solid fa-circle-check"></i> Cam kết hoàn tiền 100% trong 30 ngày nếu không hiệu quả</li>
           </ul>
-          <a href="#register" class="btn-primary price-btn">ĐĂNG KÝ NGAY</a>
+          <a href="#register" class="btn-primary price-btn" data-package="30days">ĐĂNG KÝ NGAY</a>
         </div>
       </div>
     </div>
@@ -649,6 +649,15 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label for="package" class="form-label">Chọn gói đồng hành:</label>
+            <select id="package" name="package" class="form-select" required>
+              <option value="" disabled selected>-- Chọn gói đăng ký --</option>
+              <option value="14days">GÓI ĐỒNG HÀNH 14 NGÀY (4.990.000đ)</option>
+              <option value="30days">GÓI ĐỒNG HÀNH 30 NGÀY (6.990.000đ)</option>
+            </select>
+          </div>
+
           <button type="submit" class="btn-primary form-btn">GỬI ĐĂNG KÝ NGAY</button>
         </form>
       </div>
@@ -709,6 +718,78 @@
         Ban tổ chức và Đội ngũ hỗ trợ (Mentor) sẽ chủ động liên hệ Zalo cho bạn trong vòng 24 giờ tới để gửi thông tin lịch học và hướng dẫn chuẩn bị.
       </p>
       <button class="modal-btn" id="closeModalBtn">Đồng ý</button>
+    </div>
+  </div>
+
+  <!-- SePay Payment Modal -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-content payment-modal-content">
+      <div class="payment-header">
+        <h3><i class="fa-solid fa-wallet"></i> THANH TOÁN CHUYỂN KHOẢN TỰ ĐỘNG</h3>
+        <p>Hệ thống tự động kích hoạt ngay sau khi nhận được tiền</p>
+      </div>
+      
+      <div class="payment-body">
+        <!-- QR Code Column -->
+        <div class="payment-qr-col">
+          <div class="qr-wrapper">
+            <img id="paymentQrImg" src="" alt="VietQR Payment Code">
+            <div class="qr-scan-line"></div>
+          </div>
+          <div class="payment-timer">
+            <i class="fa-solid fa-hourglass-half"></i> Giao dịch hết hạn sau: <span id="paymentCountdown">10:00</span>
+          </div>
+        </div>
+        
+        <!-- Info Column -->
+        <div class="payment-info-col">
+          <div class="info-row">
+            <span class="info-label">Ngân Hàng</span>
+            <div class="info-value-group">
+              <span class="info-value" id="paymentBankName">...</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Chủ Tài Khoản</span>
+            <span class="info-value" id="paymentAccountHolder">...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Số Tài Khoản</span>
+            <div class="info-value-group">
+              <span class="info-value" id="paymentAccountNumber">...</span>
+              <button class="btn-copy" id="btn-copy-acc"><i class="fa-regular fa-copy"></i> Sao chép</button>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Số Tiền</span>
+            <div class="info-value-group">
+              <span class="info-value highlight-price" id="paymentAmount">...</span>
+              <button class="btn-copy" id="btn-copy-amount"><i class="fa-regular fa-copy"></i> Sao chép</button>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nội Dung CK</span>
+            <div class="info-value-group">
+              <span class="info-value highlight-content" id="paymentContent">...</span>
+              <button class="btn-copy" id="btn-copy-content"><i class="fa-regular fa-copy"></i> Sao chép</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="payment-footer">
+        <div class="payment-status">
+          <div class="status-indicator-ping">
+            <span class="ping"></span>
+            <span class="dot"></span>
+          </div>
+          <span id="paymentStatusText">Đang chờ quét giao dịch từ ngân hàng...</span>
+        </div>
+        <p class="payment-warning">
+          <i class="fa-solid fa-circle-info"></i> <strong>Lưu ý quan trọng:</strong> Vui lòng chuyển khoản chính xác <strong>Số tiền</strong> và <strong>Nội dung chuyển khoản</strong> ở trên để hệ thống tự động xác nhận trong 10 giây.
+        </p>
+        <button class="modal-btn secondary-btn" id="closePaymentModalBtn">Hủy giao dịch</button>
+      </div>
     </div>
   </div>
 

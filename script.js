@@ -1,3 +1,13 @@
+// SePay Payment Configurations
+// Hãy dán thông tin tài khoản ngân hàng và API token của bạn vào đây
+const SEPAY_CONFIG = {
+  API_TOKEN: '2R3XAQWWILIY1IT5KZSG7GU9NEWCCOAP6BSXFVIDOBGQGYBVW8BZVZS7KRSYTAEU', // Dán API Token lấy từ Bước 3 vào đây
+  BANK_ACC: '0010197779999', // Dán Số tài khoản ngân hàng nhận tiền vào đây
+  BANK_NAME: 'MBBank', // Ví dụ: MBBank, Vietcombank, ACB, VPBank, Techcombank...
+  ACCOUNT_HOLDER: 'VU QUANG PHONG', // Ví dụ: NGUYEN VAN A (Viết hoa không dấu)
+  MEMO_PREFIX: 'PMEDIA' // Tiền tố nội dung chuyển khoản (Ví dụ: XK0987654321)
+};
+
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   initCountdown();
@@ -147,13 +157,51 @@ function initFaq() {
 }
 
 // 4. Registration Form and Success Modal
+let paymentCheckInterval = null;
+let paymentCountdownInterval = null;
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+}
+
+function setupCopyBtn(btnId, textElementId, isAmount = false) {
+  const btn = document.getElementById(btnId);
+  const textEl = document.getElementById(textElementId);
+  if (!btn || !textEl) return;
+  
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  
+  newBtn.addEventListener('click', () => {
+    let text = textEl.textContent.trim();
+    if (isAmount) {
+      text = text.replace(/[^0-9]/g, '');
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      const originalText = newBtn.innerHTML;
+      newBtn.innerHTML = `<i class="fa-solid fa-check"></i> Đã chép`;
+      newBtn.classList.add('copied');
+      setTimeout(() => {
+        newBtn.innerHTML = originalText;
+        newBtn.classList.remove('copied');
+      }, 2000);
+    }).catch(err => {
+      console.error('Lỗi sao chép:', err);
+    });
+  });
+}
+
 function initForm() {
   const form = document.getElementById('registrationForm');
   const modal = document.getElementById('successModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
 
-  if (!form || !modal || !closeModalBtn || !submitBtn) return;
+  // SePay Payment Modal Elements
+  const paymentModal = document.getElementById('paymentModal');
+  const closePaymentModalBtn = document.getElementById('closePaymentModalBtn');
+  
+  if (!form || !modal || !closeModalBtn || !submitBtn || !paymentModal || !closePaymentModalBtn) return;
 
   const originalBtnText = submitBtn.innerHTML;
 
@@ -162,11 +210,12 @@ function initForm() {
 
     // Simple validation check
     const name = document.getElementById('fullName').value.trim();
-    const phone = document.getElementById('phone').value.trim();
+    const phone = document.getElementById('phone').value.trim().replace(/[^0-9]/g, '');
     const email = document.getElementById('email').value.trim();
+    const packageVal = document.getElementById('package').value;
 
-    if (!name || !phone || !email) {
-      alert('Vui lòng điền đầy đủ thông tin đăng ký!');
+    if (!name || !phone || !email || !packageVal) {
+      alert('Vui lòng điền đầy đủ thông tin đăng ký và chọn gói học!');
       return;
     }
 
@@ -180,8 +229,8 @@ function initForm() {
       body: new FormData(form)
     })
     .then(() => {
-      // Show Success Modal
-      modal.classList.add('active');
+      // Setup and Show Payment Modal instead of direct success
+      startPaymentProcess(phone, packageVal);
       
       // Reset form
       form.reset();
@@ -198,28 +247,167 @@ function initForm() {
     });
   });
 
-  // Close modal event
+  // Close success modal event
   closeModalBtn.addEventListener('click', () => {
     modal.classList.remove('active');
   });
 
-  // Close modal when clicking outside content
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.classList.remove('active');
     }
+  });
+
+  // Close payment modal event (cancel payment)
+  closePaymentModalBtn.addEventListener('click', () => {
+    stopPaymentProcess();
+  });
+}
+
+function startPaymentProcess(phone, packageVal) {
+  const paymentModal = document.getElementById('paymentModal');
+  const qrImg = document.getElementById('paymentQrImg');
+  const timerText = document.getElementById('paymentCountdown');
+  const bankNameText = document.getElementById('paymentBankName');
+  const holderText = document.getElementById('paymentAccountHolder');
+  const accText = document.getElementById('paymentAccountNumber');
+  const amountText = document.getElementById('paymentAmount');
+  const contentText = document.getElementById('paymentContent');
+  const statusText = document.getElementById('paymentStatusText');
+  const statusGroup = document.querySelector('.payment-status');
+
+  if (!paymentModal) return;
+
+  // Clear any existing intervals
+  clearInterval(paymentCheckInterval);
+  clearInterval(paymentCountdownInterval);
+
+  // Reset status UI
+  statusGroup.classList.remove('success');
+  statusText.textContent = "Đang chờ quét giao dịch từ ngân hàng...";
+
+  // Calculate amount and description content
+  const amount = packageVal === '14days' ? 4990000 : 6990000;
+  const content = (SEPAY_CONFIG.MEMO_PREFIX + phone).toUpperCase();
+
+  // Update payment UI info
+  bankNameText.textContent = SEPAY_CONFIG.BANK_NAME;
+  holderText.textContent = SEPAY_CONFIG.ACCOUNT_HOLDER;
+  accText.textContent = SEPAY_CONFIG.BANK_ACC;
+  amountText.textContent = formatCurrency(amount);
+  contentText.textContent = content;
+
+  // Generate dynamic VietQR code URL
+  const qrUrl = `https://vietqr.app/img?acc=${SEPAY_CONFIG.BANK_ACC}&bank=${SEPAY_CONFIG.BANK_NAME}&amount=${amount}&des=${content}&template=compact&holder=${encodeURIComponent(SEPAY_CONFIG.ACCOUNT_HOLDER)}`;
+  qrImg.src = qrUrl;
+
+  // Setup copy buttons
+  setupCopyBtn('btn-copy-acc', 'paymentAccountNumber');
+  setupCopyBtn('btn-copy-amount', 'paymentAmount', true);
+  setupCopyBtn('btn-copy-content', 'paymentContent');
+
+  // Open modal
+  paymentModal.classList.add('active');
+
+  // Countdown timer logic (10 minutes)
+  let secondsLeft = 600;
+  paymentCountdownInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+      clearInterval(paymentCountdownInterval);
+      clearInterval(paymentCheckInterval);
+      timerText.textContent = "Giao dịch hết hạn";
+      statusText.textContent = "Giao dịch đã hết hạn thanh toán. Vui lòng thử lại.";
+      return;
+    }
+    const minutes = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    timerText.textContent = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }, 1000);
+
+  // Polling SePay API
+  paymentCheckInterval = setInterval(() => {
+    pollSepayApi(amount, content);
+  }, 5000);
+}
+
+function stopPaymentProcess() {
+  const paymentModal = document.getElementById('paymentModal');
+  if (paymentModal) {
+    paymentModal.classList.remove('active');
+  }
+  clearInterval(paymentCheckInterval);
+  clearInterval(paymentCountdownInterval);
+}
+
+function pollSepayApi(targetAmount, targetContent) {
+  const statusText = document.getElementById('paymentStatusText');
+  const statusGroup = document.querySelector('.payment-status');
+  const successModal = document.getElementById('successModal');
+  const paymentModal = document.getElementById('paymentModal');
+
+  if (SEPAY_CONFIG.API_TOKEN === 'YOUR_API_TOKEN_HERE') {
+    console.warn('SePay API Token chưa được cấu hình. Sử dụng giả lập hoặc điền Token.');
+    return;
+  }
+
+  // Call SePay Transactions API
+  fetch(`https://my.sepay.vn/userapi/transactions/list?limit=20`, {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer ' + SEPAY_CONFIG.API_TOKEN,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 200 && data.transactions) {
+      // Find matching transaction
+      const matchedTx = data.transactions.find(tx => {
+        const amountIn = parseFloat(tx.amount_in);
+        const content = tx.transaction_content || '';
+        return amountIn === targetAmount && content.toUpperCase().includes(targetContent.toUpperCase());
+      });
+
+      if (matchedTx) {
+        // Payment success!
+        clearInterval(paymentCheckInterval);
+        clearInterval(paymentCountdownInterval);
+
+        // Update modal UI to success state
+        statusGroup.classList.add('success');
+        statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Thanh toán thành công! Đang xác nhận...`;
+
+        setTimeout(() => {
+          // Close payment modal
+          paymentModal.classList.remove('active');
+          // Open success modal
+          successModal.classList.add('active');
+        }, 2500);
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Lỗi khi gọi SePay API:', error);
   });
 }
 
 // 5. Smooth Scroll for CTA buttons
 function initSmoothScroll() {
   const ctaButtons = document.querySelectorAll('a[href^="#"]');
+  const packageSelect = document.getElementById('package');
   
   ctaButtons.forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       const targetId = this.getAttribute('href');
       const targetElement = document.querySelector(targetId);
+      
+      // Pre-select package in form if data-package exists
+      const packageVal = this.getAttribute('data-package');
+      if (packageSelect && packageVal) {
+        packageSelect.value = packageVal;
+      }
       
       if (targetElement) {
         // Offset for sticky header
