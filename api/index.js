@@ -199,6 +199,21 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // --- DEBUG ROUTE ---
+  if (pathname === '/api/debug') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      isVercel: !!process.env.VERCEL,
+      hasTursoUrl: !!process.env.TURSO_DATABASE_URL,
+      hasTursoToken: !!process.env.TURSO_AUTH_TOKEN,
+      activeDriver: process.env.TURSO_DATABASE_URL ? 'turso' : 'local',
+      tmpDbExists: fs.existsSync('/tmp/brain.db'),
+      processCwd: process.cwd(),
+      processEnvKeys: Object.keys(process.env).filter(k => k.includes('TURSO') || k.includes('VERCEL'))
+    }));
+    return;
+  }
+
   // --- API ROUTES ---
 
   // 1. PRODUCTS API
