@@ -7,8 +7,15 @@ let db;
 if (process.env.TURSO_DATABASE_URL) {
   // Use Turso Cloud DB (for Vercel persistence)
   const { createClient } = require('@libsql/client');
+  
+  let rawUrl = process.env.TURSO_DATABASE_URL;
+  // Automatically rewrite protocol from libsql:// to https:// for serverless compatibility
+  if (rawUrl.startsWith('libsql://')) {
+    rawUrl = rawUrl.replace('libsql://', 'https://');
+  }
+  
   const client = createClient({
-    url: process.env.TURSO_DATABASE_URL,
+    url: rawUrl,
     authToken: process.env.TURSO_AUTH_TOKEN
   });
   
