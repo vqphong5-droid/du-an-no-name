@@ -323,7 +323,7 @@ function startPaymentProcess(phone, packageVal) {
 
   // Polling SePay API
   paymentCheckInterval = setInterval(() => {
-    pollSepayApi(amount, content, checkoutStartTime);
+    pollSepayApi(amount, content, checkoutStartTime, phone);
   }, 5000);
 }
 
@@ -336,7 +336,7 @@ function stopPaymentProcess() {
   clearInterval(paymentCountdownInterval);
 }
 
-function pollSepayApi(targetAmount, targetContent, checkoutStartTime) {
+function pollSepayApi(targetAmount, targetContent, checkoutStartTime, phone) {
   const statusText = document.getElementById('paymentStatusText');
   const statusGroup = document.querySelector('.payment-status');
   const successModal = document.getElementById('successModal');
@@ -374,6 +374,20 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime) {
         // Update modal UI to success state
         statusGroup.classList.add('success');
         statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Thanh toán thành công! Đang xác nhận...`;
+
+        // Gửi yêu cầu cập nhật trạng thái "Đã thanh toán" và Số tiền lên Google Sheet
+        const updateData = new URLSearchParams();
+        updateData.append('action', 'updatePayment');
+        updateData.append('phone', phone);
+        updateData.append('amount', matchedTx.amount_in);
+
+        fetch(googleScriptUrl, {
+          method: 'POST',
+          body: updateData
+        })
+        .then(res => res.json())
+        .then(result => console.log('Google Sheets Update Response:', result))
+        .catch(err => console.error("Lỗi cập nhật Google Sheet:", err));
 
         setTimeout(() => {
           // Close payment modal
