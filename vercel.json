@@ -7,7 +7,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/index.js"
+      "destination": "/api"
     }
   ],
   "functions": {
