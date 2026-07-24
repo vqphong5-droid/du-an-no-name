@@ -1,7 +1,6 @@
 // SePay Payment Configurations
 // Hãy dán thông tin tài khoản ngân hàng và API token của bạn vào đây
 const SEPAY_CONFIG = {
-  API_TOKEN: 'GR6VNOEBNHSGZA4DXTTF8IZK74ERN8PSS7CSAN1RWMI9YXV2U02BLYRUF0E3EVJL', // Dán API Token lấy từ Bước 3 vào đây
   BANK_ACC: '0010197779999', // Dán Số tài khoản ngân hàng nhận tiền vào đây
   BANK_NAME: 'MBBank', // Ví dụ: MBBank, Vietcombank, ACB, VPBank, Techcombank...
   ACCOUNT_HOLDER: 'VU QUANG PHONG', // Ví dụ: NGUYEN VAN A (Viết hoa không dấu)
@@ -346,18 +345,13 @@ function pollSepayApi(targetAmount, targetContent) {
   const successModal = document.getElementById('successModal');
   const paymentModal = document.getElementById('paymentModal');
 
-  if (SEPAY_CONFIG.API_TOKEN === 'YOUR_API_TOKEN_HERE') {
-    console.warn('SePay API Token chưa được cấu hình. Sử dụng giả lập hoặc điền Token.');
-    return;
-  }
+  // URL Web App Google Apps Script của bạn
+  const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec";
 
-  // Call SePay Transactions API
-  fetch(`https://my.sepay.vn/userapi/transactions/list?limit=20`, {
+  // Gọi API SePay thông qua proxy Google Apps Script để bypass CORS và bảo mật Token
+  fetch(`${googleScriptUrl}?action=checkPayment`, {
     method: 'GET',
-    headers: {
-      'Authorization': 'Bearer ' + SEPAY_CONFIG.API_TOKEN,
-      'Content-Type': 'application/json'
-    }
+    mode: 'cors'
   })
   .then(response => response.json())
   .then(data => {
@@ -388,7 +382,7 @@ function pollSepayApi(targetAmount, targetContent) {
     }
   })
   .catch(error => {
-    console.error('Lỗi khi gọi SePay API:', error);
+    console.error('Lỗi khi gọi Google Apps Script Proxy:', error);
   });
 }
 
