@@ -287,7 +287,7 @@ function startPaymentProcess(phone, packageVal) {
   statusText.textContent = "Đang chờ quét giao dịch từ ngân hàng...";
 
   // Calculate amount and description content
-  const amount = packageVal === '14days' ? 4990000 : 6990000;
+  const amount = packageVal === '14days' ? 50000 : 6990000;
   const content = (SEPAY_CONFIG.MEMO_PREFIX + phone).toUpperCase();
 
   // Update payment UI info
