@@ -218,8 +218,8 @@ function initForm() {
       return;
     }
 
-    // Lưu tạm dữ liệu form trước khi reset
-    const formData = new FormData(form);
+    // Tạo snapshot tĩnh của dữ liệu form trước khi reset (tránh trình duyệt gửi dữ liệu rỗng)
+    const formData = new URLSearchParams(new FormData(form));
 
     // Mở Modal thanh toán ngay lập tức để tăng tốc trải nghiệm (dưới 0.1s)
     startPaymentProcess(phone, packageVal);
