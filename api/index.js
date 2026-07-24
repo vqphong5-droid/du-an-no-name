@@ -201,14 +201,18 @@ module.exports = async (req, res) => {
 
   // --- DEBUG ROUTE ---
   if (pathname === '/api/debug') {
+    const urlVal = process.env.TURSO_DATABASE_URL || '';
+    const tokenVal = process.env.TURSO_AUTH_TOKEN || '';
+    
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       isVercel: !!process.env.VERCEL,
-      hasTursoUrl: !!process.env.TURSO_DATABASE_URL,
-      hasTursoToken: !!process.env.TURSO_AUTH_TOKEN,
+      hasTursoUrl: !!urlVal,
+      tursoUrlInfo: urlVal ? `${urlVal.substring(0, 15)}... (${urlVal.length} chars)` : 'empty',
+      hasTursoToken: !!tokenVal,
+      tursoTokenInfo: tokenVal ? `${tokenVal.substring(0, 15)}... (${tokenVal.length} chars)` : 'empty',
       activeDriver: process.env.TURSO_DATABASE_URL ? 'turso' : 'local',
       tmpDbExists: fs.existsSync('/tmp/brain.db'),
-      processCwd: process.cwd(),
       processEnvKeys: Object.keys(process.env).filter(k => k.includes('TURSO') || k.includes('VERCEL'))
     }));
     return;
