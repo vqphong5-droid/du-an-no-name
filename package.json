@@ -1,0 +1,12 @@
+{
+  "name": "cothienxaykenh-admin",
+  "version": "1.0.0",
+  "description": "Admin panel for Co Thien Xay Kenh",
+  "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

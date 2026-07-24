@@ -1,8 +1,28 @@
+const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-// Resolve database path using process.cwd() for Vercel compatibility
-const dbPath = path.join(process.cwd(), 'brain.db');
+let dbPath;
+
+if (process.env.VERCEL) {
+  // On Vercel: copy DB to /tmp to allow read/write operations in read-only environment
+  const srcDbPath = path.join(process.cwd(), 'brain.db');
+  dbPath = path.join('/tmp', 'brain.db');
+  
+  if (!fs.existsSync(dbPath)) {
+    try {
+      fs.copyFileSync(srcDbPath, dbPath);
+    } catch (e) {
+      console.error("Failed to copy database to /tmp:", e);
+      // Fallback to source database if copy fails
+      dbPath = srcDbPath;
+    }
+  }
+} else {
+  // Local development: connect directly to local workspace file for persistence
+  dbPath = path.join(process.cwd(), 'brain.db');
+}
+
 const db = new DatabaseSync(dbPath);
 
 // Enable foreign keys
