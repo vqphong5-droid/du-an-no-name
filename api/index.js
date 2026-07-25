@@ -849,10 +849,14 @@ module.exports = async (req, res) => {
             let status = sendRes1.success ? 'sent' : 'failed';
             let errMsg = sendRes1.success ? null : JSON.stringify(sendRes1.error);
             let nowTime = getFormattedDateTime();
-            await db.run(`
-              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-              VALUES (?, 'email_1', ?, ?, ?, ?)
-            `, [customerId, registered_at, status, sendRes1.success ? nowTime : null, errMsg]);
+            try {
+              await db.run(`
+                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+                VALUES (?, 'email_1', ?, ?, ?, ?)
+              `, [customerId, registered_at, status, sendRes1.success ? nowTime : null, errMsg]);
+            } catch (dbErr) {
+              console.error("Database log failed for email_1 (likely read-only on Vercel):", dbErr);
+            }
 
             // Trễ 1.5 giây
             await sleep(1500);
@@ -867,10 +871,14 @@ module.exports = async (req, res) => {
             status = sendRes2.success ? 'sent' : 'failed';
             errMsg = sendRes2.success ? null : JSON.stringify(sendRes2.error);
             nowTime = getFormattedDateTime();
-            await db.run(`
-              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-              VALUES (?, 'email_2', ?, ?, ?, ?)
-            `, [customerId, registered_at, status, sendRes2.success ? nowTime : null, errMsg]);
+            try {
+              await db.run(`
+                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+                VALUES (?, 'email_2', ?, ?, ?, ?)
+              `, [customerId, registered_at, status, sendRes2.success ? nowTime : null, errMsg]);
+            } catch (dbErr) {
+              console.error("Database log failed for email_2 (likely read-only on Vercel):", dbErr);
+            }
 
             // Trễ 1.5 giây
             await sleep(1500);
@@ -893,10 +901,14 @@ module.exports = async (req, res) => {
             status = sendRes3.success ? 'sent' : 'failed';
             errMsg = sendRes3.success ? null : JSON.stringify(sendRes3.error);
             nowTime = getFormattedDateTime();
-            await db.run(`
-              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-              VALUES (?, 'email_3', ?, ?, ?, ?)
-            `, [customerId, registered_at, status, sendRes3.success ? nowTime : null, errMsg]);
+            try {
+              await db.run(`
+                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+                VALUES (?, 'email_3', ?, ?, ?, ?)
+              `, [customerId, registered_at, status, sendRes3.success ? nowTime : null, errMsg]);
+            } catch (dbErr) {
+              console.error("Database log failed for email_3 (likely read-only on Vercel):", dbErr);
+            }
             
           } else {
             // 1. Gửi Email 1 ngay lập tức qua Resend
