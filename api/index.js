@@ -163,7 +163,22 @@ function getEmailTemplate(emailType, name, extra) {
 </html>
   `;
 
-  if (emailType === 'email_1') {
+  if (emailType === 'waitlist_confirmation') {
+    const subject = 'Chào mừng bạn đã đăng ký danh sách chờ Cô Thiện Xây Kênh!';
+    const body = `
+<p>Xin chào <strong>${name}</strong>,</p>
+<p>Cảm ơn bạn đã đăng ký tham gia danh sách chờ (Waitlist) chương trình đồng hành của chúng tôi.</p>
+<p>Dưới đây là thông tin đăng ký của bạn:</p>
+<ul style="background-color: #f7fafc; padding: 15px; border-radius: 8px; list-style-type: none; line-height: 1.8; border: 1px solid #edf2f7; margin: 20px 0;">
+  <li><strong>Họ và tên:</strong> ${name}</li>
+  <li><strong>Số điện thoại:</strong> ${extra && extra.phone ? extra.phone : ''}</li>
+  <li><strong>Thời gian đăng ký:</strong> ${extra && extra.registered_at ? extra.registered_at : ''}</li>
+</ul>
+<p>Đội ngũ của tụi mình sẽ sớm liên hệ trực tiếp với bạn qua Zalo hoặc số điện thoại để hỗ trợ tư vấn và cung cấp thêm thông tin chi tiết nhé.</p>
+<p>Chào bạn và hẹn gặp lại sớm,<br><strong>Cô Thiện</strong></p>
+    `;
+    return { subject, html: emailWrapper(subject, body) };
+  } else if (emailType === 'email_1') {
     const subject = 'Chào bạn! Cảm ơn bạn đã đăng ký nhé (Đọc ngay để làm quen nào)';
     const body = `
 <p>Chào <strong>${name}</strong>,</p>
@@ -836,10 +851,21 @@ module.exports = async (req, res) => {
           const isTestMode = emailTrimmed.includes('+test');
           
           if (isTestMode) {
-            console.log(`[Test Mode] Sending all 3 sequence emails immediately to ${emailTrimmed}...`);
+            console.log(`[Test Mode] Sending all 3 sequence emails + waitlist immediately to ${emailTrimmed}...`);
             const sleep = (ms) => new Promise(res => setTimeout(res, ms));
             
-            // 1. Gửi Email 1 ngay lập tức
+            // 1. Gửi Email Waitlist ngay lập tức
+            const waitlistData = getEmailTemplate('waitlist_confirmation', name, { phone, registered_at });
+            await sendEmail({
+              to: emailTrimmed,
+              subject: waitlistData.subject,
+              html: waitlistData.html
+            });
+
+            // Trễ 1.5 giây
+            await sleep(1500);
+
+            // 2. Gửi Email 1
             const email1Data = getEmailTemplate('email_1', name);
             const sendRes1 = await sendEmail({
               to: emailTrimmed,
@@ -861,7 +887,7 @@ module.exports = async (req, res) => {
             // Trễ 1.5 giây
             await sleep(1500);
 
-            // 2. Gửi Email 2
+            // 3. Gửi Email 2
             const email2Data = getEmailTemplate('email_2', name);
             const sendRes2 = await sendEmail({
               to: emailTrimmed,
@@ -883,7 +909,7 @@ module.exports = async (req, res) => {
             // Trễ 1.5 giây
             await sleep(1500);
 
-            // 3. Gửi Email 3
+            // 4. Gửi Email 3
             let origin = 'https://cothienxaykenh.com';
             if (req.headers && req.headers.host) {
               const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -911,22 +937,30 @@ module.exports = async (req, res) => {
             }
             
           } else {
-            // 1. Gửi Email 1 ngay lập tức qua Resend
-            const email1Data = getEmailTemplate('email_1', name);
+            // 1. Gửi Email Waitlist ngay lập tức
+            const waitlistData = getEmailTemplate('waitlist_confirmation', name, { phone, registered_at });
             sendEmail({
               to: emailTrimmed,
-              subject: email1Data.subject,
-              html: email1Data.html
-            }).then(async (sendRes) => {
-              const status = sendRes.success ? 'sent' : 'failed';
-              const errMsg = sendRes.success ? null : JSON.stringify(sendRes.error);
-              const nowTime = getFormattedDateTime();
-              
-              await db.run(`
-                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-                VALUES (?, 'email_1', ?, ?, ?, ?)
-              `, [customerId, registered_at, status, sendRes.success ? nowTime : null, errMsg]);
-            }).catch(err => console.error("Error sending immediate email_1:", err));
+              subject: waitlistData.subject,
+              html: waitlistData.html
+            }).then(() => {
+              // 2. Gửi Email 1 ngay lập tức qua Resend
+              const email1Data = getEmailTemplate('email_1', name);
+              sendEmail({
+                to: emailTrimmed,
+                subject: email1Data.subject,
+                html: email1Data.html
+              }).then(async (sendRes) => {
+                const status = sendRes.success ? 'sent' : 'failed';
+                const errMsg = sendRes.success ? null : JSON.stringify(sendRes.error);
+                const nowTime = getFormattedDateTime();
+                
+                await db.run(`
+                  INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+                  VALUES (?, 'email_1', ?, ?, ?, ?)
+                `, [customerId, registered_at, status, sendRes.success ? nowTime : null, errMsg]);
+              }).catch(err => console.error("Error sending immediate email_1:", err));
+            }).catch(err => console.error("Error sending waitlist confirmation:", err));
             
             // 2. Lập lịch Email 2 (2 ngày sau) và Email 3 (3 ngày sau)
             const timeEmail2 = addDays(registered_at, 2);
