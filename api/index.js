@@ -837,42 +837,45 @@ module.exports = async (req, res) => {
           
           if (isTestMode) {
             console.log(`[Test Mode] Sending all 3 sequence emails immediately to ${emailTrimmed}...`);
+            const sleep = (ms) => new Promise(res => setTimeout(res, ms));
             
             // 1. Gửi Email 1 ngay lập tức
             const email1Data = getEmailTemplate('email_1', name);
-            sendEmail({
+            const sendRes1 = await sendEmail({
               to: emailTrimmed,
               subject: email1Data.subject,
               html: email1Data.html
-            }).then(async (sendRes) => {
-              const status = sendRes.success ? 'sent' : 'failed';
-              const errMsg = sendRes.success ? null : JSON.stringify(sendRes.error);
-              const nowTime = getFormattedDateTime();
-              
-              await db.run(`
-                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-                VALUES (?, 'email_1', ?, ?, ?, ?)
-              `, [customerId, registered_at, status, sendRes.success ? nowTime : null, errMsg]);
-            }).catch(err => console.error("Error sending immediate email_1:", err));
+            });
+            let status = sendRes1.success ? 'sent' : 'failed';
+            let errMsg = sendRes1.success ? null : JSON.stringify(sendRes1.error);
+            let nowTime = getFormattedDateTime();
+            await db.run(`
+              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+              VALUES (?, 'email_1', ?, ?, ?, ?)
+            `, [customerId, registered_at, status, sendRes1.success ? nowTime : null, errMsg]);
 
-            // 2. Gửi Email 2 ngay lập tức
+            // Trễ 1.5 giây
+            await sleep(1500);
+
+            // 2. Gửi Email 2
             const email2Data = getEmailTemplate('email_2', name);
-            sendEmail({
+            const sendRes2 = await sendEmail({
               to: emailTrimmed,
               subject: email2Data.subject,
               html: email2Data.html
-            }).then(async (sendRes) => {
-              const status = sendRes.success ? 'sent' : 'failed';
-              const errMsg = sendRes.success ? null : JSON.stringify(sendRes.error);
-              const nowTime = getFormattedDateTime();
-              
-              await db.run(`
-                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-                VALUES (?, 'email_2', ?, ?, ?, ?)
-              `, [customerId, registered_at, status, sendRes.success ? nowTime : null, errMsg]);
-            }).catch(err => console.error("Error sending immediate email_2:", err));
+            });
+            status = sendRes2.success ? 'sent' : 'failed';
+            errMsg = sendRes2.success ? null : JSON.stringify(sendRes2.error);
+            nowTime = getFormattedDateTime();
+            await db.run(`
+              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+              VALUES (?, 'email_2', ?, ?, ?, ?)
+            `, [customerId, registered_at, status, sendRes2.success ? nowTime : null, errMsg]);
 
-            // 3. Gửi Email 3 ngay lập tức
+            // Trễ 1.5 giây
+            await sleep(1500);
+
+            // 3. Gửi Email 3
             let origin = 'https://cothienxaykenh.com';
             if (req.headers && req.headers.host) {
               const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -882,20 +885,18 @@ module.exports = async (req, res) => {
             const checkoutUrl = `${origin}/checkout?name=${encodeURIComponent(name)}&phone=${phone}&email=${encodeURIComponent(emailTrimmed)}&package=${packageVal}`;
             
             const email3Data = getEmailTemplate('email_3', name, checkoutUrl);
-            sendEmail({
+            const sendRes3 = await sendEmail({
               to: emailTrimmed,
               subject: email3Data.subject,
               html: email3Data.html
-            }).then(async (sendRes) => {
-              const status = sendRes.success ? 'sent' : 'failed';
-              const errMsg = sendRes.success ? null : JSON.stringify(sendRes.error);
-              const nowTime = getFormattedDateTime();
-              
-              await db.run(`
-                INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
-                VALUES (?, 'email_3', ?, ?, ?, ?)
-              `, [customerId, registered_at, status, sendRes.success ? nowTime : null, errMsg]);
-            }).catch(err => console.error("Error sending immediate email_3:", err));
+            });
+            status = sendRes3.success ? 'sent' : 'failed';
+            errMsg = sendRes3.success ? null : JSON.stringify(sendRes3.error);
+            nowTime = getFormattedDateTime();
+            await db.run(`
+              INSERT INTO email_queue (customer_id, email_type, scheduled_at, status, sent_at, error_message)
+              VALUES (?, 'email_3', ?, ?, ?, ?)
+            `, [customerId, registered_at, status, sendRes3.success ? nowTime : null, errMsg]);
             
           } else {
             // 1. Gửi Email 1 ngay lập tức qua Resend
