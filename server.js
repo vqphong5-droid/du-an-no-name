@@ -81,4 +81,19 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
   console.log(`Admin panel: http://localhost:${PORT}/admin`);
+
+  // Periodic Email Queue Worker (simulates Vercel Cron locally)
+  // Runs every 1 minute to check for due emails in the sequence
+  setInterval(() => {
+    fetch(`http://localhost:${PORT}/api/cron`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.processed > 0) {
+          console.log(`[Local Cron Worker] Processed ${data.processed} emails: Sent ${data.sent}, Failed ${data.failed}`);
+        }
+      })
+      .catch(err => {
+        console.error("[Local Cron Worker] Error contacting cron endpoint:", err.message);
+      });
+  }, 60000); // 60 seconds
 });

@@ -79,6 +79,22 @@ def setup():
     """)
     print("Table 'orders' created/verified.")
     
+    # 4.5. Create email_queue table
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS email_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        email_type TEXT NOT NULL CHECK(email_type IN ('email_1', 'email_2', 'email_3')),
+        scheduled_at TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'sent', 'failed')) DEFAULT 'pending',
+        sent_at TEXT,
+        error_message TEXT,
+        FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        UNIQUE(customer_id, email_type)
+    )
+    """)
+    print("Table 'email_queue' created/verified.")
+    
     # Commit table creation
     conn.commit()
     

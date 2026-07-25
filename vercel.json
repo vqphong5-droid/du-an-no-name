@@ -14,5 +14,11 @@
     "api/index.js": {
       "includeFiles": "brain.db"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

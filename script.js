@@ -235,7 +235,6 @@ function initForm() {
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
-    // Step 1: Create or find customer in SQLite
     fetch('/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -244,7 +243,8 @@ function initForm() {
         phone: phone,
         email: email,
         zalo: '',
-        registered_at: formattedTime
+        registered_at: formattedTime,
+        package: packageVal
       })
     })
     .then(async (res) => {
