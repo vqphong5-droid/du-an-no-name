@@ -63,6 +63,7 @@ def test_api():
     customer_data = {
         'name': 'Test Client API',
         'phone': '0999999999',
+        'email': 'test_api@example.com',
         'zalo': 'zalo_api',
         'registered_at': '2026-07-24 12:00:00'
     }

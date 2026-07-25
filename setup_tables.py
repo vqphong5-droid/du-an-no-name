@@ -57,6 +57,7 @@ def setup():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phone TEXT UNIQUE NOT NULL,
+        email TEXT,
         zalo TEXT,
         registered_at TEXT NOT NULL
     )
@@ -97,6 +98,7 @@ def setup():
         for item in data:
             name = item.get('name')
             phone = item.get('phone')
+            email = item.get('email', '')
             zalo = item.get('zalo', '')
             registered_at = item.get('registered_at')
             
@@ -106,9 +108,9 @@ def setup():
                 
             try:
                 c.execute("""
-                INSERT INTO customers (name, phone, zalo, registered_at)
-                VALUES (?, ?, ?, ?)
-                """, (name, phone, zalo, registered_at))
+                INSERT INTO customers (name, phone, email, zalo, registered_at)
+                VALUES (?, ?, ?, ?, ?)
+                """, (name, phone, email, zalo, registered_at))
                 conn.commit()
                 imported_count += 1
                 print(f"  + Imported customer: {name} ({phone})")
@@ -139,7 +141,7 @@ def setup():
     c.execute("SELECT * FROM customers")
     rows = c.fetchall()
     for row in rows:
-        print(f"  ID: {row[0]}, Name: {row[1]}, Phone: {row[2]}, Zalo: {row[3]}, Registered At: {row[4]}")
+        print(f"  ID: {row[0]}, Name: {row[1]}, Phone: {row[2]}, Email: {row[3]}, Zalo: {row[4]}, Registered At: {row[5]}")
         
     conn.close()
     print("\n=== Setup Complete ===")

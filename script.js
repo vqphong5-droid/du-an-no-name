@@ -242,6 +242,7 @@ function initForm() {
       body: JSON.stringify({
         name: name,
         phone: phone,
+        email: email,
         zalo: '',
         registered_at: formattedTime
       })

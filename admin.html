@@ -381,6 +381,7 @@
               <th>ID</th>
               <th>Tên khách hàng</th>
               <th>Số điện thoại</th>
+              <th>Email</th>
               <th>Zalo</th>
               <th>Ngày đăng ký</th>
               <th>Hành động</th>
@@ -479,6 +480,10 @@
         <div class="form-group">
           <label for="customer-phone">Số điện thoại *</label>
           <input type="text" id="customer-phone" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="customer-email">Địa chỉ Email</label>
+          <input type="email" id="customer-email" class="form-control">
         </div>
         <div class="form-group">
           <label for="customer-zalo">Tài khoản Zalo</label>
@@ -682,6 +687,7 @@
           <td>${c.id}</td>
           <td style="font-weight: 500;">${c.name}</td>
           <td>${c.phone}</td>
+          <td>${c.email || '<span style="color: var(--text-muted);">-</span>'}</td>
           <td>${c.zalo || '<span style="color: var(--text-muted);">-</span>'}</td>
           <td>${c.registered_at}</td>
           <td class="actions">
@@ -807,6 +813,7 @@
       document.getElementById('customer-id').value = c.id;
       document.getElementById('customer-name').value = c.name;
       document.getElementById('customer-phone').value = c.phone;
+      document.getElementById('customer-email').value = c.email || '';
       document.getElementById('customer-zalo').value = c.zalo || '';
       document.getElementById('customer-date').value = c.registered_at;
       document.getElementById('customer-modal-title').textContent = 'Chỉnh sửa khách hàng';
@@ -820,6 +827,7 @@
       const payload = {
         name: document.getElementById('customer-name').value.trim(),
         phone: document.getElementById('customer-phone').value.trim(),
+        email: document.getElementById('customer-email').value.trim(),
         zalo: document.getElementById('customer-zalo').value.trim(),
         registered_at: document.getElementById('customer-date').value.trim()
       };

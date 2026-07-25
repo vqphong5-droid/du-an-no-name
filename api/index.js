@@ -117,6 +117,7 @@ async function ensureDbInitialized() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phone TEXT UNIQUE NOT NULL,
+        email TEXT,
         zalo TEXT,
         registered_at TEXT NOT NULL
       )
@@ -159,13 +160,13 @@ async function ensureDbInitialized() {
           const fileData = fs.readFileSync(waitlistPath, 'utf-8');
           const data = JSON.parse(fileData);
           for (const item of data) {
-            const { name, phone, zalo, registered_at } = item;
+            const { name, phone, email, zalo, registered_at } = item;
             if (name && phone && registered_at) {
               try {
                 await db.run(`
-                  INSERT INTO customers (name, phone, zalo, registered_at)
-                  VALUES (?, ?, ?, ?)
-                `, [name, phone, zalo || '', registered_at]);
+                  INSERT INTO customers (name, phone, email, zalo, registered_at)
+                  VALUES (?, ?, ?, ?, ?)
+                `, [name, phone, email || '', zalo || '', registered_at]);
               } catch (e) {
                 // Ignore duplicates
               }
@@ -356,7 +357,7 @@ module.exports = async (req, res) => {
     if (method === 'POST') {
       try {
         const body = await getJsonBody(req);
-        const { name, phone, zalo, registered_at } = body;
+        const { name, phone, email, zalo, registered_at } = body;
         
         if (!name || !phone || !registered_at) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -365,12 +366,12 @@ module.exports = async (req, res) => {
         }
         
         const runResult = await db.run(`
-          INSERT INTO customers (name, phone, zalo, registered_at)
-          VALUES (?, ?, ?, ?)
-        `, [name, phone, zalo || '', registered_at]);
+          INSERT INTO customers (name, phone, email, zalo, registered_at)
+          VALUES (?, ?, ?, ?, ?)
+        `, [name, phone, email || '', zalo || '', registered_at]);
         
         res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ id: runResult.lastInsertRowid, name, phone, zalo, registered_at }));
+        res.end(JSON.stringify({ id: runResult.lastInsertRowid, name, phone, email, zalo, registered_at }));
       } catch (e) {
         let errMsg = e.message;
         if (errMsg.includes('UNIQUE constraint failed: customers.phone')) {
@@ -389,7 +390,7 @@ module.exports = async (req, res) => {
     if (method === 'PUT') {
       try {
         const body = await getJsonBody(req);
-        const { name, phone, zalo, registered_at } = body;
+        const { name, phone, email, zalo, registered_at } = body;
         
         if (!name || !phone || !registered_at) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -399,12 +400,12 @@ module.exports = async (req, res) => {
         
         await db.run(`
           UPDATE customers
-          SET name = ?, phone = ?, zalo = ?, registered_at = ?
+          SET name = ?, phone = ?, email = ?, zalo = ?, registered_at = ?
           WHERE id = ?
-        `, [name, phone, zalo || '', registered_at, id]);
+        `, [name, phone, email || '', zalo || '', registered_at, id]);
         
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ id, name, phone, zalo, registered_at }));
+        res.end(JSON.stringify({ id, name, phone, email, zalo, registered_at }));
       } catch (e) {
         let errMsg = e.message;
         if (errMsg.includes('UNIQUE constraint failed: customers.phone')) {

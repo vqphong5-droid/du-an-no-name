@@ -53,8 +53,8 @@ def test():
     # Test 4: Insert duplicate customer phone (should fail UNIQUE constraint)
     try:
         c.execute("""
-        INSERT INTO customers (name, phone, zalo, registered_at)
-        VALUES ('Duplicate Person', '0912345678', 'dup_zalo', '2026-07-24 12:00:00')
+        INSERT INTO customers (name, phone, email, zalo, registered_at)
+        VALUES ('Duplicate Person', '0912345678', 'dup_email@example.com', 'dup_zalo', '2026-07-24 12:00:00')
         """)
         conn.commit()
         print("[FAIL] Test 4: Duplicate phone number succeeded! UNIQUE constraint is not working.")
