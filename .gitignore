@@ -1,0 +1,8 @@
+resend_config.txt*
+# Node modules and build files
+node_modules/
+.env
+.vercel/
+brain.db
+brain.db-journal
+waitlist.json

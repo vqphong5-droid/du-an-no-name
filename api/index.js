@@ -1,6 +1,57 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+// --- RESEND EMAIL CONFIGURATION & HELPER ---
+let resendApiKey = process.env.RESEND_API_KEY;
+if (!resendApiKey) {
+  const possiblePaths = [
+    path.join(process.cwd(), 'resend_config.txt'),
+    path.join(process.cwd(), 'resend_config.txt.txt')
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      resendApiKey = fs.readFileSync(p, 'utf8').trim();
+      console.log(`Loaded Resend API Key from file: ${path.basename(p)}`);
+      break;
+    }
+  }
+}
+
+async function sendEmail({ to, subject, html }) {
+  if (!resendApiKey) {
+    console.error("Resend API Key is not configured. Email not sent.");
+    return { success: false, error: "API Key missing" };
+  }
+  
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Cô Thiện Xây Kênh <admin@cothienxaykenh.com>',
+        to: Array.isArray(to) ? to : [to],
+        subject: subject,
+        html: html
+      })
+    });
+    
+    const resData = await response.json();
+    if (response.ok) {
+      console.log(`Email sent successfully to ${to}. ID: ${resData.id}`);
+      return { success: true, id: resData.id };
+    } else {
+      console.error(`Resend API Error:`, resData);
+      return { success: false, error: resData };
+    }
+  } catch (error) {
+    console.error(`Failed to send email to ${to}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
 let db;
 
 // 1. DATABASE ADAPTER SELECTION (TURSO CLOUD SQLite vs LOCAL SQLite)
@@ -382,6 +433,31 @@ module.exports = async (req, res) => {
           VALUES (?, ?, ?, ?, ?)
         `, [name, phone, email || '', zalo || '', registered_at]);
         
+        // Gửi email chào mừng tự động nếu khách hàng có điền email
+        if (email && email.trim() !== '') {
+          sendEmail({
+            to: email.trim(),
+            subject: 'Chào mừng bạn đến với Cô Thiện Xây Kênh!',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #2b6cb0; text-align: center;">Chào mừng ${name} đến với Cô Thiện Xây Kênh!</h2>
+                <p>Xin chào <strong>${name}</strong>,</p>
+                <p>Cảm ơn bạn đã đăng ký tham gia danh sách chờ (Waitlist) của chúng tôi.</p>
+                <p>Dưới đây là thông tin đăng ký của bạn:</p>
+                <ul style="background-color: #f7fafc; padding: 15px; border-radius: 5px; list-style-type: none; line-height: 1.6;">
+                  <li><strong>Họ và tên:</strong> ${name}</li>
+                  <li><strong>Số điện thoại:</strong> ${phone}</li>
+                  ${zalo ? `<li><strong>Số Zalo:</strong> ${zalo}</li>` : ''}
+                  <li><strong>Thời gian đăng ký:</strong> ${registered_at}</li>
+                </ul>
+                <p>Đội ngũ Cô Thiện Xây Kênh sẽ sớm liên hệ trực tiếp với bạn qua Zalo hoặc số điện thoại để hỗ trợ tư vấn và cung cấp thêm thông tin chi tiết.</p>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                <p style="font-size: 12px; color: #718096; text-align: center;">Đây là email tự động gửi từ hệ thống Cô Thiện Xây Kênh. Vui lòng không trả lời trực tiếp email này.</p>
+              </div>
+            `
+          }).catch(err => console.error("Error in background email send:", err));
+        }
+        
         res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id: runResult.lastInsertRowid, name, phone, email, zalo, registered_at }));
       } catch (e) {
@@ -516,6 +592,49 @@ module.exports = async (req, res) => {
         });
 
         const runResult = await db.executeTransaction(queries);
+
+        // Gửi email xác nhận đơn hàng nếu khách hàng có điền email
+        if (customer.email && customer.email.trim() !== '') {
+          sendEmail({
+            to: customer.email.trim(),
+            subject: 'Xác nhận đơn đặt hàng thành công tại Cô Thiện Xây Kênh',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #2b6cb0; text-align: center;">Đặt hàng thành công!</h2>
+                <p>Xin chào <strong>${customer.name}</strong>,</p>
+                <p>Cảm ơn bạn đã đặt hàng dịch vụ tại Cô Thiện Xây Kênh. Yêu cầu đăng ký gói đồng hành của bạn đã được ghi nhận.</p>
+                
+                <div style="background-color: #f7fafc; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #4a5568;">Thông tin chi tiết đơn hàng:</h3>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #718096; border-bottom: 1px solid #edf2f7;">Dịch vụ đăng ký:</td>
+                      <td style="padding: 8px 0; font-weight: bold; text-align: right; border-bottom: 1px solid #edf2f7;">${product.name}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #718096; border-bottom: 1px solid #edf2f7;">Tổng chi phí:</td>
+                      <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #e53e3e; border-bottom: 1px solid #edf2f7;">${parseFloat(amount).toLocaleString('vi-VN')} đ</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #718096; border-bottom: 1px solid #edf2f7;">Trạng thái đơn hàng:</td>
+                      <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #3182ce; border-bottom: 1px solid #edf2f7;">${status === 'completed' ? 'Đã hoàn thành' : 'Chờ xử lý / Đang chờ thanh toán'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #718096; border-bottom: 1px solid #edf2f7;">Thời gian đặt hàng:</td>
+                      <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #edf2f7;">${created_at}</td>
+                    </tr>
+                  </table>
+                </div>
+                
+                <p>Chúng tôi sẽ sớm liên hệ trực tiếp với bạn qua Zalo hoặc số điện thoại để thống nhất kế hoạch làm việc.</p>
+                <p>Nếu bạn cần hỗ trợ gấp hoặc có thay đổi thông tin, xin vui lòng nhắn trực tiếp cho chúng tôi.</p>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                <p style="font-size: 12px; color: #718096; text-align: center;">Đây là email tự động gửi từ hệ thống Cô Thiện Xây Kênh. Vui lòng không trả lời trực tiếp email này.</p>
+              </div>
+            `
+          }).catch(err => console.error("Error in background order email send:", err));
+        }
 
         res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
