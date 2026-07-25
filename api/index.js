@@ -123,6 +123,18 @@ async function ensureDbInitialized() {
       )
     `);
     
+    // Ensure email column exists (migration for existing databases)
+    try {
+      await db.run("SELECT email FROM customers LIMIT 1");
+    } catch (e) {
+      try {
+        await db.run("ALTER TABLE customers ADD COLUMN email TEXT");
+        console.log("Added email column to customers table via self-healing.");
+      } catch (err) {
+        console.error("Failed to add email column via self-healing:", err);
+      }
+    }
+    
     // Create orders table
     await db.run(`
       CREATE TABLE IF NOT EXISTS orders (

@@ -266,6 +266,7 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime, regData) {
             body: JSON.stringify({
               name: regData.fullName,
               phone: regData.phone,
+              email: regData.email || '',
               zalo: '',
               registered_at: regData.createdAt || formattedTime
             })
