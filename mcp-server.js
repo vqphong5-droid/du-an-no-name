@@ -346,7 +346,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Setup Express server to host the SSE transport
 const app = express();
-app.use(express.json());
 
 const transports = new Map();
 
