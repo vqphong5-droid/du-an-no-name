@@ -195,7 +195,7 @@ function startTimerAndPolling(targetAmount, targetContent, checkoutStartTime, re
 
 function pollSepayApi(targetAmount, targetContent, checkoutStartTime, regData) {
   const liveStatusText = document.getElementById('liveStatusText');
-  const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec";
+  const googleScriptUrl = "/api/check-payment";
 
   fetch(`${googleScriptUrl}?action=checkPayment`, {
     method: 'GET',

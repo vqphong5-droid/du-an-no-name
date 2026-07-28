@@ -869,7 +869,7 @@
     (function () {
       // ⚠️ QUAN TRỌNG: Dán URL Web App Google Apps Script của bạn vào đây sau khi deploy.
       // Xem hướng dẫn cách tạo URL này ở phần hướng dẫn đi kèm.
-      var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz35yG6bHHchDUPnhxLkgufORgbA_WJw8PLTt-dYmOaBJ8l2XT6ES2Sc-DdGkeAZOB5Tw/exec";
+      var GOOGLE_SCRIPT_URL = "/api/survey";
 
       var surveyForm = document.getElementById('surveyForm');
       var surveySubmitBtn = document.getElementById('surveySubmitBtn');
@@ -881,6 +881,17 @@
           if (GOOGLE_SCRIPT_URL.indexOf('DÁN_URL_WEB_APP') !== -1) {
             alert('Chưa cấu hình URL Google Sheets. Vui lòng dán URL Web App vào biến GOOGLE_SCRIPT_URL trong file index.html.');
             return;
+          }
+
+          var surveyPhoneInput = document.getElementById('surveyPhone');
+          if (surveyPhoneInput) {
+            var rawPhone = surveyPhoneInput.value.trim().replace(/[\s.-]/g, '');
+            var isPhoneValid = /^(?:0|\+?84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[0-9]{2})\d{7}$/.test(rawPhone);
+            if (!isPhoneValid) {
+              alert('Số điện thoại/Zalo không hợp lệ (Ví dụ: 0987654321). Vui lòng kiểm tra lại!');
+              surveyPhoneInput.focus();
+              return;
+            }
           }
 
           var originalBtnText = surveySubmitBtn.textContent;

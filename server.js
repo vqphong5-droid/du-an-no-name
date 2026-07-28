@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const apiHandler = require('./api/index.js');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Helper to serve static files
 function serveStaticFile(res, filePath, contentType) {

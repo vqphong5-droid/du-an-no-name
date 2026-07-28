@@ -190,6 +190,41 @@ function setupCopyBtn(btnId, textElementId, isAmount = false) {
   });
 }
 
+function isValidPhone(phone) {
+  if (!phone) return false;
+  const clean = phone.trim().replace(/[\s.-]/g, '');
+  return /^(?:0|\+?84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[0-9]{2})\d{7}$/.test(clean);
+}
+
+function isValidEmail(email) {
+  if (!email) return false;
+  const clean = email.trim();
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(clean);
+}
+
+function setFieldError(fieldId, errorMsg) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.classList.add('is-invalid');
+  let errDiv = el.parentNode.querySelector('.input-error-msg');
+  if (!errDiv) {
+    errDiv = document.createElement('span');
+    errDiv.className = 'input-error-msg';
+    el.parentNode.appendChild(errDiv);
+  }
+  errDiv.textContent = errorMsg;
+}
+
+function clearFieldError(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.classList.remove('is-invalid');
+  const errDiv = el.parentNode.querySelector('.input-error-msg');
+  if (errDiv) {
+    errDiv.remove();
+  }
+}
+
 function initForm() {
   const form = document.getElementById('registrationForm');
   const modal = document.getElementById('successModal');
@@ -204,17 +239,75 @@ function initForm() {
 
   const originalBtnText = submitBtn.innerHTML;
 
+  // Real-time blur validation for Phone & Email
+  const phoneEl = document.getElementById('phone');
+  if (phoneEl) {
+    phoneEl.addEventListener('blur', () => {
+      const val = phoneEl.value.trim().replace(/[\s.-]/g, '');
+      if (val && !isValidPhone(val)) {
+        setFieldError('phone', 'Số điện thoại không hợp lệ (Ví dụ: 0987654321).');
+      } else {
+        clearFieldError('phone');
+      }
+    });
+  }
+
+  const emailEl = document.getElementById('email');
+  if (emailEl) {
+    emailEl.addEventListener('blur', () => {
+      const val = emailEl.value.trim();
+      if (val && !isValidEmail(val)) {
+        setFieldError('email', 'Email không hợp lệ (Ví dụ: name@gmail.com).');
+      } else {
+        clearFieldError('email');
+      }
+    });
+  }
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    // Simple validation check
+    clearFieldError('fullName');
+    clearFieldError('phone');
+    clearFieldError('email');
+    clearFieldError('package');
+
     const name = document.getElementById('fullName').value.trim();
-    const phone = document.getElementById('phone').value.trim().replace(/[^0-9]/g, '');
+    const rawPhone = document.getElementById('phone').value.trim();
+    const phone = rawPhone.replace(/[\s.-]/g, '');
     const email = document.getElementById('email').value.trim();
     const packageVal = document.getElementById('package').value;
 
-    if (!name || !phone || !email || !packageVal) {
-      alert('Vui lòng điền đầy đủ thông tin đăng ký và chọn gói học!');
+    let hasError = false;
+
+    if (!name) {
+      setFieldError('fullName', 'Vui lòng nhập họ và tên.');
+      hasError = true;
+    }
+
+    if (!phone) {
+      setFieldError('phone', 'Vui lòng nhập số điện thoại.');
+      hasError = true;
+    } else if (!isValidPhone(phone)) {
+      setFieldError('phone', 'Số điện thoại không đúng định dạng (Ví dụ: 0987654321).');
+      hasError = true;
+    }
+
+    if (!email) {
+      setFieldError('email', 'Vui lòng nhập địa chỉ email.');
+      hasError = true;
+    } else if (!isValidEmail(email)) {
+      setFieldError('email', 'Email không đúng định dạng (Ví dụ: name@gmail.com).');
+      hasError = true;
+    }
+
+    if (!packageVal) {
+      setFieldError('package', 'Vui lòng chọn gói đăng ký.');
+      hasError = true;
+    }
+
+    if (hasError) {
+      alert('Vui lòng kiểm tra và sửa lại các thông tin chưa chính xác!');
       return;
     }
 
@@ -320,7 +413,7 @@ function initForm() {
       // Tạo snapshot tĩnh của dữ liệu form trước khi reset (tránh trình duyệt gửi dữ liệu rỗng)
       const formData = new URLSearchParams(new FormData(form));
 
-      fetch("https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec", {
+      fetch("/api/survey", {
         method: "POST",
         body: formData,
         keepalive: true
@@ -438,7 +531,7 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime, phone) {
   const paymentModal = document.getElementById('paymentModal');
 
   // URL Web App Google Apps Script của bạn
-  const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwLDNOODkV5ZgUJFQXl_ToJLUOIynsMkDb45fNijljY2Sv8kF4G3CoWcbD0a-DtVVpBDg/exec";
+  const googleScriptUrl = "/api/check-payment";
 
   // Gọi API SePay thông qua proxy Google Apps Script để bypass CORS và bảo mật Token
   fetch(`${googleScriptUrl}?action=checkPayment`, {

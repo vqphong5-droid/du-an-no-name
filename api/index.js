@@ -1,21 +1,33 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-// --- RESEND EMAIL CONFIGURATION & HELPER ---
-let resendApiKey = process.env.RESEND_API_KEY;
-if (!resendApiKey) {
-  const possiblePaths = [
-    path.join(process.cwd(), 'resend_config.txt'),
-    path.join(process.cwd(), 'resend_config.txt.txt')
-  ];
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      resendApiKey = fs.readFileSync(p, 'utf8').trim();
-      console.log(`Loaded Resend API Key from file: ${path.basename(p)}`);
-      break;
+// --- ENV LOADER & RESEND CONFIGURATION ---
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    try {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      envContent.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const parts = trimmed.split('=');
+          if (parts.length >= 2) {
+            const key = parts[0].trim();
+            const val = parts.slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+            if (key && !process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Could not parse .env file:', e.message);
     }
   }
 }
+loadEnv();
+
+let resendApiKey = process.env.RESEND_API_KEY;
 
 async function sendEmail({ to, subject, html }) {
   if (!resendApiKey) {
@@ -632,6 +644,18 @@ function getJsonBody(req) {
   });
 }
 
+// Helper to parse raw request body as text
+function getRawBody(req) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      resolve(body);
+    });
+  });
+}
+
+
 // Exported Request Handler for Vercel Serverless Function & Local server
 module.exports = async (req, res) => {
   // Ensure tables and initial data exist
@@ -837,11 +861,28 @@ module.exports = async (req, res) => {
           res.end(JSON.stringify({ error: 'Thiếu tên, số điện thoại, hoặc ngày đăng ký!' }));
           return;
         }
+
+        const cleanPhone = (phone || '').toString().trim().replace(/[\s.-]/g, '');
+        const phoneValid = /^(?:0|\+?84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[0-9]{2})\d{7}$/.test(cleanPhone);
+        if (!phoneValid) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Số điện thoại không đúng định dạng Việt Nam (Ví dụ: 0987654321).' }));
+          return;
+        }
+
+        if (email && email.trim() !== '') {
+          const emailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
+          if (!emailValid) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Địa chỉ Email không đúng định dạng (Ví dụ: name@gmail.com).' }));
+            return;
+          }
+        }
         
         const runResult = await db.run(`
           INSERT INTO customers (name, phone, email, zalo, registered_at)
           VALUES (?, ?, ?, ?, ?)
-        `, [name, phone, email || '', zalo || '', registered_at]);
+        `, [name, cleanPhone, email || '', zalo || '', registered_at]);
         
         const customerId = runResult.lastInsertRowid;
         
@@ -1007,12 +1048,29 @@ module.exports = async (req, res) => {
           res.end(JSON.stringify({ error: 'Thiếu thông tin bắt buộc' }));
           return;
         }
+
+        const cleanPhone = (phone || '').toString().trim().replace(/[\s.-]/g, '');
+        const phoneValid = /^(?:0|\+?84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[0-9]{2})\d{7}$/.test(cleanPhone);
+        if (!phoneValid) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Số điện thoại không đúng định dạng Việt Nam (Ví dụ: 0987654321).' }));
+          return;
+        }
+
+        if (email && email.trim() !== '') {
+          const emailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
+          if (!emailValid) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Địa chỉ Email không đúng định dạng (Ví dụ: name@gmail.com).' }));
+            return;
+          }
+        }
         
         await db.run(`
           UPDATE customers
           SET name = ?, phone = ?, email = ?, zalo = ?, registered_at = ?
           WHERE id = ?
-        `, [name, phone, email || '', zalo || '', registered_at, id]);
+        `, [name, cleanPhone, email || '', zalo || '', registered_at, id]);
         
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ id, name, phone, email, zalo, registered_at }));
@@ -1192,6 +1250,67 @@ module.exports = async (req, res) => {
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+  }
+
+  // --- GOOGLE APPS SCRIPT PROXY ENDPOINTS (SECRETS PROTECTION) ---
+
+  // 1. Proxy GET request to SePay Google Apps Script
+  if (pathname === '/api/check-payment') {
+    if (method === 'GET') {
+      try {
+        const targetUrl = process.env.GOOGLE_SCRIPT_SEPAY_URL;
+        if (!targetUrl) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'GOOGLE_SCRIPT_SEPAY_URL is not configured' }));
+          return;
+        }
+
+        const response = await fetch(`${targetUrl}?action=checkPayment`);
+        const data = await response.json();
+        
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(data));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+  }
+
+  // 2. Proxy POST request to Google Sheets Survey Google Apps Script
+  if (pathname === '/api/survey') {
+    if (method === 'POST') {
+      try {
+        const targetUrl = process.env.GOOGLE_SCRIPT_SURVEY_URL;
+        if (!targetUrl) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'GOOGLE_SCRIPT_SURVEY_URL is not configured' }));
+          return;
+        }
+
+        const rawBody = await getRawBody(req);
+        
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': req.headers['content-type'] || 'application/x-www-form-urlencoded'
+          },
+          body: rawBody
+        });
+
+        const resText = await response.text();
+        
+        res.writeHead(response.status || 200, { 
+          'Content-Type': response.headers.get('content-type') || 'text/plain; charset=utf-8' 
+        });
+        res.end(resText);
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: e.message }));
       }
       return;
