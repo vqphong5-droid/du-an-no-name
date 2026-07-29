@@ -779,14 +779,15 @@ module.exports = async (req, res) => {
   if (pathname === '/api/business-signals') {
     if (method === 'GET') {
       try {
-        const customers = await db.all(`
+        const hours = parseInt(url.searchParams.get('hours') || '0');
+        
+        let customersQuery = `
           SELECT id, name, phone, email, zalo, registered_at
           FROM customers
           WHERE is_notified = 0 OR is_notified IS NULL
           ORDER BY id DESC
-        `);
-
-        const orders = await db.all(`
+        `;
+        let ordersQuery = `
           SELECT o.id, o.customer_id, c.name as customer_name, c.phone as customer_phone,
                  o.product_id, p.name as product_name, o.amount, o.status, o.created_at
           FROM orders o
@@ -794,16 +795,50 @@ module.exports = async (req, res) => {
           JOIN products p ON o.product_id = p.id
           WHERE o.is_notified = 0 OR o.is_notified IS NULL
           ORDER BY o.id DESC
-        `);
-
-        const failedEmails = await db.all(`
+        `;
+        let failedEmailsQuery = `
           SELECT eq.id, eq.customer_id, c.name as customer_name, c.email as customer_email,
                  eq.email_type, eq.scheduled_at, eq.status, eq.error_message
           FROM email_queue eq
           JOIN customers c ON eq.customer_id = c.id
           WHERE eq.status = 'failed' AND (eq.is_notified = 0 OR eq.is_notified IS NULL)
           ORDER BY eq.id DESC
-        `);
+        `;
+        let queryParams = [];
+
+        if (hours > 0) {
+          const limitDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+          const limitStr = getFormattedDateTime(limitDate);
+          
+          customersQuery = `
+            SELECT id, name, phone, email, zalo, registered_at
+            FROM customers
+            WHERE registered_at >= ?
+            ORDER BY id DESC
+          `;
+          ordersQuery = `
+            SELECT o.id, o.customer_id, c.name as customer_name, c.phone as customer_phone,
+                   o.product_id, p.name as product_name, o.amount, o.status, o.created_at
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.id
+            JOIN products p ON o.product_id = p.id
+            WHERE o.created_at >= ?
+            ORDER BY o.id DESC
+          `;
+          failedEmailsQuery = `
+            SELECT eq.id, eq.customer_id, c.name as customer_name, c.email as customer_email,
+                   eq.email_type, eq.scheduled_at, eq.status, eq.error_message
+            FROM email_queue eq
+            JOIN customers c ON eq.customer_id = c.id
+            WHERE eq.status = 'failed' AND eq.scheduled_at >= ?
+            ORDER BY eq.id DESC
+          `;
+          queryParams = [limitStr];
+        }
+
+        const customers = await db.all(customersQuery, queryParams);
+        const orders = await db.all(ordersQuery, queryParams);
+        const failedEmails = await db.all(failedEmailsQuery, queryParams);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ customers, orders, failed_emails: failedEmails }));

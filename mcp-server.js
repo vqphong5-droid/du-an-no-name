@@ -248,10 +248,15 @@ const TOOLS_LIST = [
   },
   {
     name: "get_business_signals",
-    description: "Retrieve new business signals/events (new customer registrations, new orders, or failed email sequences) that have not been notified yet.",
+    description: "Retrieve business signals/events (new customer registrations, new orders, or failed email sequences). Can filter by hours to get all events in that timeframe regardless of notification status.",
     inputSchema: {
       type: "object",
-      properties: {}
+      properties: {
+        hours: {
+          type: "integer",
+          description: "Retrieve all events created in the last N hours, ignoring notification status (useful for statistics and cron summary reports)."
+        }
+      }
     }
   },
   {
@@ -339,7 +344,10 @@ async function callTool(name, args = {}) {
       return await callApi('/api/cron');
 
     case "get_business_signals":
-      return await callApi('/api/business-signals');
+      {
+        const hours = args.hours ? `?hours=${args.hours}` : '';
+        return await callApi(`/api/business-signals${hours}`);
+      }
 
     case "mark_signals_notified":
       return await callApi('/api/business-signals/mark-notified', {
