@@ -550,6 +550,42 @@ async function ensureDbInitialized() {
         console.error("Failed to add email column via self-healing:", err);
       }
     }
+
+    // Ensure is_notified column exists in customers table
+    try {
+      await db.run("SELECT is_notified FROM customers LIMIT 1");
+    } catch (e) {
+      try {
+        await db.run("ALTER TABLE customers ADD COLUMN is_notified INTEGER DEFAULT 0");
+        console.log("Added is_notified column to customers table via self-healing.");
+      } catch (err) {
+        console.error("Failed to add is_notified column to customers:", err);
+      }
+    }
+
+    // Ensure is_notified column exists in orders table
+    try {
+      await db.run("SELECT is_notified FROM orders LIMIT 1");
+    } catch (e) {
+      try {
+        await db.run("ALTER TABLE orders ADD COLUMN is_notified INTEGER DEFAULT 0");
+        console.log("Added is_notified column to orders table via self-healing.");
+      } catch (err) {
+        console.error("Failed to add is_notified column to orders:", err);
+      }
+    }
+
+    // Ensure is_notified column exists in email_queue table
+    try {
+      await db.run("SELECT is_notified FROM email_queue LIMIT 1");
+    } catch (e) {
+      try {
+        await db.run("ALTER TABLE email_queue ADD COLUMN is_notified INTEGER DEFAULT 0");
+        console.log("Added is_notified column to email_queue table via self-healing.");
+      } catch (err) {
+        console.error("Failed to add is_notified column to email_queue:", err);
+      }
+    }
     
     // Create orders table
     await db.run(`
@@ -733,6 +769,107 @@ module.exports = async (req, res) => {
         res.end(JSON.stringify(rows));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+  }
+
+  // 6. BUSINESS SIGNALS GET API
+  if (pathname === '/api/business-signals') {
+    if (method === 'GET') {
+      try {
+        const customers = await db.all(`
+          SELECT id, name, phone, email, zalo, registered_at
+          FROM customers
+          WHERE is_notified = 0 OR is_notified IS NULL
+          ORDER BY id DESC
+        `);
+
+        const orders = await db.all(`
+          SELECT o.id, o.customer_id, c.name as customer_name, c.phone as customer_phone,
+                 o.product_id, p.name as product_name, o.amount, o.status, o.created_at
+          FROM orders o
+          JOIN customers c ON o.customer_id = c.id
+          JOIN products p ON o.product_id = p.id
+          WHERE o.is_notified = 0 OR o.is_notified IS NULL
+          ORDER BY o.id DESC
+        `);
+
+        const failedEmails = await db.all(`
+          SELECT eq.id, eq.customer_id, c.name as customer_name, c.email as customer_email,
+                 eq.email_type, eq.scheduled_at, eq.status, eq.error_message
+          FROM email_queue eq
+          JOIN customers c ON eq.customer_id = c.id
+          WHERE eq.status = 'failed' AND (eq.is_notified = 0 OR eq.is_notified IS NULL)
+          ORDER BY eq.id DESC
+        `);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ customers, orders, failed_emails: failedEmails }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+  }
+
+  // 7. BUSINESS SIGNALS MARK NOTIFIED POST API
+  if (pathname === '/api/business-signals/mark-notified') {
+    if (method === 'POST') {
+      try {
+        const body = await getJsonBody(req);
+        const { customer_ids, order_ids, email_queue_ids } = body;
+
+        let updatedCustomers = 0;
+        let updatedOrders = 0;
+        let updatedEmailQueue = 0;
+
+        const queries = [];
+
+        if (Array.isArray(customer_ids) && customer_ids.length > 0) {
+          const placeholders = customer_ids.map(() => '?').join(',');
+          queries.push({
+            sql: `UPDATE customers SET is_notified = 1 WHERE id IN (${placeholders})`,
+            args: customer_ids.map(id => parseInt(id))
+          });
+          updatedCustomers = customer_ids.length;
+        }
+
+        if (Array.isArray(order_ids) && order_ids.length > 0) {
+          const placeholders = order_ids.map(() => '?').join(',');
+          queries.push({
+            sql: `UPDATE orders SET is_notified = 1 WHERE id IN (${placeholders})`,
+            args: order_ids.map(id => parseInt(id))
+          });
+          updatedOrders = order_ids.length;
+        }
+
+        if (Array.isArray(email_queue_ids) && email_queue_ids.length > 0) {
+          const placeholders = email_queue_ids.map(() => '?').join(',');
+          queries.push({
+            sql: `UPDATE email_queue SET is_notified = 1 WHERE id IN (${placeholders})`,
+            args: email_queue_ids.map(id => parseInt(id))
+          });
+          updatedEmailQueue = email_queue_ids.length;
+        }
+
+        if (queries.length > 0) {
+          await db.executeTransaction(queries);
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          success: true,
+          updated: {
+            customers: updatedCustomers,
+            orders: updatedOrders,
+            email_queue: updatedEmailQueue
+          }
+        }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: e.message }));
       }
       return;

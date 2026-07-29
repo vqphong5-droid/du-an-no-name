@@ -245,6 +245,38 @@ const TOOLS_LIST = [
       type: "object",
       properties: {}
     }
+  },
+  {
+    name: "get_business_signals",
+    description: "Retrieve new business signals/events (new customer registrations, new orders, or failed email sequences) that have not been notified yet.",
+    inputSchema: {
+      type: "object",
+      properties: {}
+    }
+  },
+  {
+    name: "mark_signals_notified",
+    description: "Mark the specified business signals (customers, orders, or failed email queue items) as notified/read to prevent duplicate notifications.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        customer_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description: "List of Customer IDs to mark as notified."
+        },
+        order_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description: "List of Order IDs to mark as notified."
+        },
+        email_queue_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description: "List of Email Queue IDs to mark as notified."
+        }
+      }
+    }
   }
 ];
 
@@ -305,6 +337,16 @@ async function callTool(name, args = {}) {
 
     case "process_emails":
       return await callApi('/api/cron');
+
+    case "get_business_signals":
+      return await callApi('/api/business-signals');
+
+    case "mark_signals_notified":
+      return await callApi('/api/business-signals/mark-notified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args)
+      });
 
     default:
       throw new Error(`Tool not found: ${name}`);
