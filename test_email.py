@@ -1,20 +1,23 @@
+import sys
 import os
 import urllib.request
 import json
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 def test():
-    # Đọc API Key
-    api_key = None
-    possible_paths = ['resend_config.txt', 'resend_config.txt.txt']
-    for p in possible_paths:
-        if os.path.exists(p):
-            with open(p, 'r', encoding='utf-8') as f:
-                api_key = f.read().strip()
-                print(f"Đã đọc API key từ {p}")
-                break
-                
+    # Đọc API Key từ môi trường hoặc .env
+    api_key = os.environ.get('RESEND_API_KEY')
+    if not api_key and os.path.exists('.env'):
+        with open('.env', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('RESEND_API_KEY='):
+                    api_key = line.split('=', 1)[1].strip().strip('"\'')
+                    break
+                    
     if not api_key:
-        print("Không tìm thấy API Key!")
+        print("Không tìm thấy RESEND_API_KEY trong file .env!")
         return
 
     recipient = "vqphong5@gmail.com"
@@ -23,7 +26,8 @@ def test():
     url = "https://api.resend.com/emails"
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
     data = {
         "from": "Cô Thiện Xây Kênh <admin@cothienxaykenh.com>",

@@ -89,8 +89,8 @@ function setupCheckoutPage(regData) {
   if (packageVal === '14days') {
     packageName = 'GÓI ĐỒNG HÀNH 14 NGÀY';
     packageDescription = 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.';
-    amount = 50000;
-    originalAmount = 100000;
+    amount = 4990000;
+    originalAmount = 9980000;
   } else {
     // 30 days
     packageName = 'GÓI ĐỒNG HÀNH 30 NGÀY';
@@ -243,7 +243,7 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime, regData) {
           const updateOrderData = {
             customer_id: regData.customerId,
             product_id: regData.package === '14days' ? 1 : 2,
-            amount: regData.package === '14days' ? 50000 : 6990000,
+            amount: regData.package === '14days' ? 4990000 : 6990000,
             status: 'completed',
             created_at: regData.createdAt || new Date().toISOString()
           };
@@ -286,7 +286,7 @@ function pollSepayApi(targetAmount, targetContent, checkoutStartTime, regData) {
           })
           .then((customerId) => {
             if (!customerId) return;
-            const amount = regData.package === '14days' ? 50000 : 6990000;
+            const amount = regData.package === '14days' ? 4990000 : 6990000;
             const productId = regData.package === '14days' ? 1 : 2;
 
             fetch('/api/orders', {

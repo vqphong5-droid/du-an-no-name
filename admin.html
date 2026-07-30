@@ -823,13 +823,27 @@
     // Save Customer
     async function saveCustomer(e) {
       e.preventDefault();
-      const id = document.getElementById('customer-id').value;
+      const name = document.getElementById('customer-name').value.trim();
+      const rawPhone = document.getElementById('customer-phone').value.trim().replace(/[\s.-]/g, '');
+      const email = document.getElementById('customer-email').value.trim();
+      const zalo = document.getElementById('customer-zalo').value.trim();
+      const registered_at = document.getElementById('customer-date').value.trim();
+
+      if (!/^(?:0|\+?84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[0-9]{2})\d{7}$/.test(rawPhone)) {
+        showToast('Số điện thoại không hợp lệ (Ví dụ: 0987654321)!', 'error');
+        return;
+      }
+      if (email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        showToast('Email không đúng định dạng (Ví dụ: name@gmail.com)!', 'error');
+        return;
+      }
+
       const payload = {
-        name: document.getElementById('customer-name').value.trim(),
-        phone: document.getElementById('customer-phone').value.trim(),
-        email: document.getElementById('customer-email').value.trim(),
-        zalo: document.getElementById('customer-zalo').value.trim(),
-        registered_at: document.getElementById('customer-date').value.trim()
+        name,
+        phone: rawPhone,
+        email,
+        zalo,
+        registered_at
       };
 
       const url = id ? `/api/customers/${id}` : '/api/customers';

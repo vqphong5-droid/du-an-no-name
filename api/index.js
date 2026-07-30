@@ -621,7 +621,7 @@ async function ensureDbInitialized() {
     if (productsCount && (productsCount.count === 0 || productsCount.count === '0')) {
       await db.run(`
         INSERT INTO products (id, name, type, price, description)
-        VALUES (1, 'GÓI ĐỒNG HÀNH 14 NGÀY', 'service', 50000.0, 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.')
+        VALUES (1, 'GÓI ĐỒNG HÀNH 14 NGÀY', 'service', 4990000.0, 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.')
       `);
       await db.run(`
         INSERT INTO products (id, name, type, price, description)

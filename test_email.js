@@ -1,24 +1,27 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Đọc API Key từ file cấu hình
-let resendApiKey = process.env.RESEND_API_KEY;
-if (!resendApiKey) {
-  const possiblePaths = [
-    path.join(process.cwd(), 'resend_config.txt'),
-    path.join(process.cwd(), 'resend_config.txt.txt')
-  ];
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      resendApiKey = fs.readFileSync(p, 'utf8').trim();
-      console.log(`Đã đọc API Key từ file: ${path.basename(p)}`);
-      break;
+// Tải biến môi trường từ file .env nếu có
+const envPath = path.join(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  const content = fs.readFileSync(envPath, 'utf8');
+  content.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const parts = trimmed.split('=');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const val = parts.slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+        if (key && !process.env[key]) process.env[key] = val;
+      }
     }
-  }
+  });
 }
 
+// Đọc API Key
+let resendApiKey = process.env.RESEND_API_KEY;
 if (!resendApiKey) {
-  console.error("Không tìm thấy Resend API Key! Vui lòng kiểm tra lại file resend_config.txt");
+  console.error("Không tìm thấy Resend API Key! Vui lòng kiểm tra lại file .env");
   process.exit(1);
 }
 

@@ -44,7 +44,7 @@ def setup():
         c.execute("""
         INSERT INTO products (id, name, type, price, description)
         VALUES 
-        (1, 'GÓI ĐỒNG HÀNH 14 NGÀY', 'service', 50000.0, 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.'),
+        (1, 'GÓI ĐỒNG HÀNH 14 NGÀY', 'service', 4990000.0, 'Kèm cặp 1-1, tối ưu kênh cá nhân và thiết lập ngách nội dung độc bản trong 14 ngày.'),
         (2, 'GÓI ĐỒNG HÀNH 30 NGÀY', 'service', 6990000.0, 'Kèm cặp 1-1 trực tiếp, tối ưu toàn diện từ thiết lập kênh kỹ thuật đến kịch bản nội dung hoàn chỉnh trong 30 ngày.')
         """)
         conn.commit()

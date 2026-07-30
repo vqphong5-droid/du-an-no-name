@@ -5,4 +5,8 @@ node_modules/
 .vercel/
 brain.db
 brain.db-journal
+*.db
+*.bak
+*.backup
+backups/
 waitlist.json
